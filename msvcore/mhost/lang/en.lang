@@ -1,0 +1,36 @@
+
+:def Usage: mhost [-atW] [-t type] [-W time] hostname [server]
+:else Usage: mhost [-atW] [-t type] [-W time] hostname [server]
+:end
+
+:def  ## info
+:else  ## info
+:end
+
+:def --help print this help
+:else --help print this help
+:end
+
+:def --ver print versions list
+:else --ver print versions list
+:end
+
+:def  ## options
+:else  ## options
+:end
+
+:def -t answer type
+:else -t answer type
+:end
+
+:def -a quest ANY data
+:else -a quest ANY data
+:end
+
+:def -W wait time
+:else -W wait time
+:end
+
+:def Invalid options: unknown key
+:else Invalid options: unknown key
+:end

@@ -1,0 +1,84 @@
+
+:def 'lang'
+:else 'lang'
+:end
+
+:def 'Type error: type not found'
+:else 'Ошибка типа: тип не найден'
+:end
+
+:def 'Invalid options: unknown key'
+:else 'Неверная опция: неизвестный ключ'
+:end
+
+:def 'Usage: mhost [-atW] [-t type] [-W time] hostname [server]'
+:else 'Использование: mhost [-atW] [-t type] [-W time] ИмяХоста [ИмяСервера]'
+:end
+
+:def ' ## msv options: use --usemsv --help'
+:else ' ## msv опции: используйте --usemsv --help'
+:end
+
+:def ' ## info'
+:else ' ## информация'
+:end
+
+:def 'print this help'
+:else 'вывести эту справку'
+:end
+
+:def 'print versions list'
+:else 'вывести список версий'
+:end
+
+:def ' ## options'
+:else ' ## опции'
+:end
+
+:def 'answer type'
+:else 'тип ответа'
+:end
+
+:def 'quest ANY data'
+:else 'запросить все данные'
+:end
+
+:def 'wait time (ms)'
+:else 'время ожидания (мс)'
+:end
+
+:def 'Fatal error: invalid DNS server'
+:else 'Фатальная ошибка: неверный DNS сервер'
+:end
+
+:def 'Fatal error: dns servers not found'
+:else 'Фатальная ошибка: dns сервера не найдены'
+:end
+
+:def 'DNS server'
+:else 'DNS сервер'
+:end
+
+:def 'Error: Unknown DNS type'
+:else 'Error: Неизвестный тип DNS'
+:end
+
+:def 'Program don't normal closed. Error found! DNS data corrypt?'
+:else 'Программа завершилась с ошибками, хотя данные получены. Возможно они повреждены'
+:end
+
+:def 'Received'
+:else 'Получено'
+:end
+
+:def ' bytes from '
+:else ' байт от '
+:end
+
+:def ' in '
+:else ' за '
+:end
+
+:def ' ms'
+:else ' мс'
+:end

@@ -1,0 +1,120 @@
+
+:def Usage: mhost [-atW] [-t type] [-W time] hostname [server]
+:else Использование: mhost [-atW] [-t type] [-W time] ИмяХоста [server]
+:end
+
+:def  ## info
+:else  ## информация
+:end
+
+:def --help print this help
+:else --help вывести эту справку
+:end
+
+:def --ver print versions list
+:else --ver вывести список версий
+:end
+
+:def  ## options
+:else  ## опции
+:end
+
+:def -t answer type
+:else -t тип запроса
+:end
+
+:def -a quest ANY data
+:else -a получить все данные
+:end
+
+:def -W wait time
+:else -W время ожидания
+:end
+
+:def Invalid options: unknown key
+:else Ошибка в опциях: неизвестный параметр
+:end
+
+:def Received 
+:else Получено
+:end
+
+:def  bytes from 
+:else  байт 
+:end
+
+:def  ms
+:else  мс
+:end
+
+:def  in 
+:else  в 
+:end
+
+:def DNS server: 
+:else DNS сервер: 
+:end
+
+:def Program don't normal closed. Error found! DNS data corrypt?
+:else Программа завершилась с ошибками.
+:end
+
+:def Fatal error: dns servers not found
+:else Фатальная ошибка: DNS сервера не найдены
+:end
+
+:def 'DNS server: '
+:else 'DNS server: '
+:end
+
+:def 'Received'
+:else 'Received'
+:end
+
+:def ' bytes from '
+:else ' bytes from '
+:end
+
+:def ' in '
+:else ' in '
+:end
+
+:def ' ms'
+:else ' ms'
+:end
+
+:def 'DNS server'
+:else 'DNS server'
+:end
+
+:def 'Usage: mhost [-atW] [-t type] [-W time] hostname [server]'
+:else 'Usage: mhost [-atW] [-t type] [-W time] hostname [server]'
+:end
+
+:def ' ## info'
+:else ' ## info'
+:end
+
+:def '--help print this help'
+:else '--help print this help'
+:end
+
+:def '--ver print versions list'
+:else '--ver print versions list'
+:end
+
+:def ' ## options'
+:else ' ## options'
+:end
+
+:def '-t answer type'
+:else '-t answer type'
+:end
+
+:def '-a quest ANY data'
+:else '-a quest ANY data'
+:end
+
+:def '-W wait time'
+:else '-W wait time'
+:end
