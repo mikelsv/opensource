@@ -55,6 +55,14 @@ unsigned int prmf_itos(unsigned char *ret, unsigned int rsz, int64 val, int radi
 unsigned int prmf_dtos(unsigned char *ret, unsigned int rsz, double val, int ml){
 	unsigned char *aret = ret, *rt = ret ? ret + rsz : 0;
 
+	// Nan
+	if(val != val){
+		if(ret < rt)
+			*ret = '0';
+		ret ++;
+		return 1;
+	}
+
 	if(val < 0){
 		if(ret < rt)
 			*ret = '-';
