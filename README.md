@@ -9,4 +9,6 @@ mscr - generate hashes.
 
 mping - ping project.
 
+mhost - host project. mhost & host results: http://pastebin.com/3JUUvzYm
+
 ...
