@@ -69,9 +69,13 @@ unsigned int GetDNSServs(unsigned int *arr, unsigned int arrs){
 	return 0;
 #else
 	MString file=LoadFile("/etc/resolv.conf"); int res=0;
-	ExplodeLine el; int els=explode(el, file, file, (unsigned char*)"\n", 1);
-	for(int i=0; i<els; i++){
-		VString e=el.el(i); if(e && e.endo()==13) e.sz--;
+	VString line = file, o;
+	//ExplodeLine el; int els=explode(el, file, file, (unsigned char*)"\n", 1);
+	//for(int i=0; i<els; i++){
+	while(line){
+		//VString e=el.el(i); 
+		VString e = PartLine(line, line, "\n");
+		if(e && e.endo()==13) e.sz--;
 		VString t=PartLine(e, e, " "); dspacev(e, 7);
 		if(t!="nameserver") continue;
 		if(res<arrs){

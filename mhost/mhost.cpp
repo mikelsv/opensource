@@ -4,7 +4,7 @@
 
 #define USEMSV_ITOS
 
-#include <ws2tcpip.h>
+//#include <ws2tcpip.h>
 
 #include "../../opensource/msvcore/msvcore.cpp"
 
