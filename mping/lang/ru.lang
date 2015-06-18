@@ -1,0 +1,104 @@
+
+:def 'lang'
+:else 'lang'
+:end
+
+:def 'Invalid options: unknown key'
+:else 'Неверная опция: неизвестный ключ'
+:end
+
+:def 'Usage: mping [flags: -key val ] hostname'
+:else 'Используйте: mping [параметры: -ключ значение ] ИмяХоста'
+:end
+
+:def ' ## msv options: use --usemsv --help'
+:else ' ## msv опции: используйте --usemsv --help'
+:end
+
+:def ' ## info'
+:else ' ## информация'
+:end
+
+:def 'print this help'
+:else 'показать эту справку'
+:end
+
+:def 'print versions list'
+:else 'показать список версий'
+:end
+
+:def ' ## mode'
+:else ' ## режим'
+:end
+
+:def 'traceroute mode'
+:else 'режим трассировки'
+:end
+
+:def ' ## options'
+:else ' ## опции'
+:end
+
+:def 'set cycles'
+:else 'установить количество циклов'
+:end
+
+:def 'set 99999999 cycles'
+:else 'установить 99999999 циклов'
+:end
+
+:def 'set wait time'
+:else 'установить время ожидания'
+:end
+
+:def 'bind to local ip'
+:else 'привязать к локальному ip адресу'
+:end
+
+:def ' ## extended'
+:else ' ## расширенные'
+:end
+
+:def 'set icmp.type'
+:else 'установить icmp.type'
+:end
+
+:def 'set icmp.code'
+:else 'установить icmp.code'
+:end
+
+:def 'set first icmp.seq'
+:else 'установить icmp.seq'
+:end
+
+:def 'set ttl'
+:else 'установить ttl'
+:end
+
+:def 'ping to'
+:else 'пинг'
+:end
+
+:def 'tracert to'
+:else 'трассировка'
+:end
+
+:def 'Answer from %ip!: %d bytes, %3fms, TTL %d. %s %s'
+:else 'Ответ от %ip!: %d байт, %3fмс, TTL %d. %s %s'
+:end
+
+:def 'Timeout.'
+:else 'Таймаут.'
+:end
+
+:def 'Sorry, need root acces for use RAW socket.'
+:else 'Извините, нужны права администратора для использования RAW соккетов.'
+:end
+
+:def 'Result ping to %ip!: %d packets sended, %d recieved, min/avg/max %3f/%3f/%3f ms'
+:else 'Результат пинга %ip!: %d пакетов послано, %d получено, мин/среднее/макс %3f/%3f/%3f мс'
+:end
+
+:def 'Ok.'
+:else 'Ok.'
+:end
