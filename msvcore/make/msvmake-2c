@@ -1,0 +1,84 @@
+#configure
+#PROJECTNAME=msv-tftpd
+#ADDLIB= -lrt
+#ADDFLAGS=
+
+ifdef _
+ADDLIB+= -lrt
+else
+ADDLIB+= -lWs2_32
+endif
+
+# Link Libraries and Options
+LDLIBSOPTIONS= ${ADDLIB}
+
+# Environment
+MKDIR=mkdir
+
+ifndef CC
+CC=g++ ${RPM_OPT_FLAGS}
+endif
+
+ifndef CXX
+CXX=g++ ${RPM_OPT_FLAGS} ${ADDFLAGS}
+endif
+
+# Object Directory
+OBJECTDIR=bDebug/
+
+debug: MSVDFLAGS = -g
+debug: OBJECTDIR=bDebug/
+debug: all
+
+release: MSVDFLAGS = -O2
+release: OBJECTDIR=bRelease/
+release: all
+
+# Compile Files
+COMPILEFILES= ${PROJECTNAME} \
+	../../opensource/msvcore/VString \
+	../../opensource/msvcore/MString
+
+# Object Files
+OBJECTFILES= \
+	${OBJECTDIR}/${PROJECTNAME}.o \
+	${OBJECTDIR}/VString.o \
+	${OBJECTDIR}/MString.o
+
+#compile flags
+CFLAGS = -Wall
+
+# all targets
+all: ${PROJECTNAME}
+
+# target msvtest: use msvtest.o
+${PROJECTNAME}: ${PROJECTNAME}.o
+	${LINK.cc} -o ${PROJECTNAME} ${OBJECTFILES} ${LDLIBSOPTIONS}
+
+# target msvtest.o: use cpp
+${PROJECTNAME}.o: ${PROJECTNAME}.cpp #${LDLIBSOPTIONS}
+	${MKDIR} -p ${OBJECTDIR}
+	for x in ${COMPILEFILES}; do $(COMPILE.cc) ${MSVDFLAGS} -o ${OBJECTDIR}/$${x##*/}.o $$x.cpp 2>&1 \
+| sed "s/ошибка:/error:"/g > ${OBJECTDIR}/out; \
+echo -n "Errors: [1;31m"; grep 'error:' ${OBJECTDIR}/out; echo -n "[0m"; \
+echo -n "[0;31m"; grep 'Нет такого файла' ${OBJECTDIR}/out; echo "[0m"; \
+echo -n "Errors: [1;31m" ; grep 'error:' ${OBJECTDIR}/out | wc -l | tr -d "\n" ; \
+echo -n "[0m Warnings: " ; grep 'warning:' ${OBJECTDIR}/out | wc -l; \
+done
+# | sed "s/ошибка:/error:"/g > ${OBJECTDIR}/out; rem "sed s/error:/[1;31merror:[0m/g' ${OBJECTDIR}/out;" \
+#echo -n "Errors: [1;31m" ; grep 'error:' ${OBJECTDIR}/out | wc -l | tr -d "\n" ; \
+#echo -n "[0m Warnings: " ; grep 'warning:' ${OBJECTDIR}/out | wc -l; \
+#echo -n "Errors: [1;31m"; grep 'error:' ${OBJECTDIR}/out; echo -n "[0m"; \
+#echo -n "[0;31m"; grep 'Нет такого файла' ${OBJECTDIR}/out; echo "[0m"; \
+#done
+
+#       $(COMPILE.cc) -g -o ${OBJECTDIR}/${PROJECTNAME}.o ${PROJECTNAME}.cpp 2>&1 \
+#	$(COMPILE.cc) -g -o ${OBJECTDIR}/VString.o
+
+.PHONY: clean
+
+# target clean: delete files
+clean:
+	rm -f ${PROJECTNAME} ${OBJECTDIR}/out
+	for x in ${COMPILEFILES}; do rm ${OBJECTDIR}/$${x##*/}.o; done;
+	rmdir ${OBJECTDIR}
