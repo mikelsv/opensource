@@ -3,7 +3,7 @@ Opensource code by MikelSV
 
 This is open source library and projects:
 
-msvcore - crossplatform library: Windows, Linux, Android, Flash(Crossbridge), Windows Mobile(maybe). Simple, fast, amazing. http://centerix.ru/wiki/msvcore (RU)
+msvcore - C++ crossplatform library, 10 years old. OS: Windows, Linux, Android, Flash(Crossbridge), Windows Mobile(maybe). Simple, fast, amazing. http://centerix.ru/wiki/msvcore (RU)
 
 mscr - generate hashes.
 
