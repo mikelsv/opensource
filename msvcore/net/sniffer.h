@@ -15,6 +15,7 @@
 //#include <net/if.h>
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
+#include <ifaddrs.h>
 #endif
 
 
@@ -50,10 +51,10 @@ sniffer(){ ltime=time(); noprint=0; nosave=0; packets=0; promisc=1; filter=0; }
 ~sniffer(){ if(sock) closesocket(sock); sock=0; }
 
 int Start(unsigned int ip=0){
-#ifndef WIN32 
+#ifndef WIN32
 	signal(SIGINT,quit); signal(SIGQUIT,quit); signal(SIGTERM,quit);
 #endif
-	strcpy((char*)device, "eth0");
+	//strcpy((char*)device, "eth0");
 
 // allocating a socket    
 // инициализация SOCK_RAW AF_INET SOCK_DGRAM       SOCK_PACKET
@@ -92,6 +93,32 @@ int Start(unsigned int ip=0){
 	}
 
 #else
+	struct ifaddrs *addr = 0, *paddr;
+	if(getifaddrs(&addr) < 0){
+		print("get interface address error \r\n");
+		return 1;
+	}
+
+	int iploc = inet_addr("127.0.0.1");
+	ip = htonl(ip);
+
+	for(paddr = addr; paddr; paddr = paddr->ifa_next){
+		if(!paddr->ifa_addr)
+			continue;
+
+		if(paddr->ifa_addr->sa_family == AF_INET){ // IP v4
+			int tip = ((struct sockaddr_in *)paddr->ifa_netmask)->sin_addr.s_addr;
+			if(tip && ( ip && tip == ip || !ip && tip != iploc)){
+				//printf("interface: %s\r\n", paddr->ifa_name);
+				strcpy((char*)device, paddr->ifa_name);
+				break;
+			}
+		}
+	}
+
+	freeifaddrs(addr);
+
+
     if(promisc){
 		strcpy((char*)interface.ifr_name,(char*)device);
 		if(ioctl(sock,SIOCGIFFLAGS,&interface)<0){ printf("failed reading data for %s!\n",device); return 1; }
