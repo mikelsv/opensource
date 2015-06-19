@@ -141,7 +141,7 @@ int main(int args, char* arg[]){
 	print(itos(con), " connects(-c), ");
 	print(full ? "yes" : "no", " full(-f)"); print("]\r\n");
 	print("Url(http://) or file: '", url, "' ", itos(urlsz), " url(s)\r\n");
-	if(!url || !urlsz){ print("Error url or file not set\r\n"); exit(1); }
+	if(!url || !urlsz){ print("Error url not set\r\n"); exit(1); }
 
 
 	gsec=time(); int64 tsec=sectime()+sec*1000;
