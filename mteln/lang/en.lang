@@ -1,0 +1,92 @@
+
+:def 'lang'
+:else 'lang'
+:end
+
+:def 'Warning: Uncnown parameter:'
+:else 'Warning: Uncnown parameter:'
+:end
+
+:def 'Usage: mteln [flags: -flag val ] [--listen] host:port'
+:else 'Usage: mteln [flags: -flag val ] [--listen] host:port'
+:end
+
+:def ' ## info'
+:else ' ## info'
+:end
+
+:def 'show this help message'
+:else 'show this help message'
+:end
+
+:def 'print versions list'
+:else 'print versions list'
+:end
+
+:def ' ## actions'
+:else ' ## actions'
+:end
+
+:def 'bind to local ip'
+:else 'bind to local ip'
+:end
+
+:def 'listen port'
+:else 'listen port'
+:end
+
+:def ' ## options'
+:else ' ## options'
+:end
+
+:def 'buffering input (wait ENTER key)'
+:else 'buffering input (wait ENTER key)'
+:end
+
+:def 'no input echo'
+:else 'no input echo'
+:end
+
+:def 'Connect to'
+:else 'Connect to'
+:end
+
+:def 'Bind'
+:else 'Bind'
+:end
+
+:def 'Coinnection refused'
+:else 'Coinnection refused'
+:end
+
+:def 'Connected'
+:else 'Connected'
+:end
+
+:def 'Listen'
+:else 'Listen'
+:end
+
+:def 'Listen fail'
+:else 'Listen fail'
+:end
+
+:def 'Accept fail'
+:else 'Accept fail'
+:end
+
+:def 'Accept connection'
+:else 'Accept connection'
+:end
+
+:def 'Connection refused'
+:else 'Connection refused'
+:end
+
+:def 'Connection closed'
+:else 'Connection closed'
+:end
+
+:def ' ## msv options: use --usemsv --help'
+:else ' ## msv options: use --usemsv --help'
+:end

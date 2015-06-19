@@ -50,34 +50,46 @@ int main(int args, char* arg[]){
 // #define USEMSV_ANDOID - for android apps
 // #define USEMSV_LOGPRINT - save output data to memory buffer
 // #define USEMSV_FILEPRINT - save output data to file
-
-// #define USEMSV_ITOS	- use Itos templates
-
-// #define USEMSV_XDATACONT - use XDataContainer ( Parsers: XML, Json )
-// #define USEMSV_AMF - use amf encoder/decoder
-
 // #define USEMSV_FLASH - use for Crossbridge compile
 
+// Teplates:
+// #define USEMSV_ITOS	- use Itos templates
+
+// Formats:
+// #define USEMSV_XDATACONT - use XDataContainer ( Parsers: XML, Json )
+// #define USEMSV_AMF - use amf encoder/decoder
+// #define USEMSV_NMEA - use nmea functions
+
+// Other: 
+// #define USEMSV_MSL_FL - use MSL Fast Line
+// #define USEMSV_MODLINE - use ModLine
+
+// Lists:
 // #define USEMSV_ILIST - use IList template dunamic array. Vector, one resized memory block.
 // #define USEMSV_MLIST - use MList template dunamic array
 // #define USEMSV_OLIST - use OList template dunamic array
-// #define USEMSV_ULIST - use UList template dynamic array. // In process
+// #define USEMSV_ULIST - use UList template dynamic array. // In process... Testing...
 
+// Server:
 // #define USEMSV_STORMSERVER - use storm server
 // #define USEMSV_HTTP - use http functions
 // #define USEMSV_WEBSOCKETS - use WebSockets client and listen_websockets for storm
 
-// #define USEMSV_OPENSSL - use openssl // add to include path: ..\..\openssl-1.0.2\include
-// #define USEMSV_MYSQL - use MySQL // add to include path to mysql.h and mysql.lib
-// #define USEMSV_MODLINE - use ModLine
-// #define USEMSV_NMEA - use nmea functions
-
-// #define USEMSV_CONSOLE - use console functions
-// #define USEMSV_MSL_FL - use MSL Fast Line
+// Extensions:
 // #define USEMSV_PCRE - use PCRE functions // add to include path to pcre.h and pcre.lib
+// #define USEMSV_MYSQL - use MySQL // add to include path to mysql.h and mysql.lib
+// #define USEMSV_OPENSSL - use openssl // add to include path: ..\..\openssl-1.0.2\include
 
+// Console:
+// #define USEMSV_CONSOLE - use console functions
+// #define USEMSV_CONSOLELINE - use console windows
+
+// Memory:
 // #define USEMSV_MEMORYCONTROL - interception malloc() & free()
 // #define USEMSV_INTERCEPT_MALLOC - interception malloc() & free() // don't work
+
+// Special:
+// #define USEMSV_BUFECHO - Input / Output buffer echo control
 
 #ifndef PROJECTNAME
 	#error Please set #define PROJECTNAME "you_project_name"
@@ -160,6 +172,11 @@ int main(int args, char* arg[]){
 	#include "crossplatform/console.cpp"
 #endif
 
+#ifdef USEMSV_CONSOLELINE
+	#include "line/consoleline.cpp"
+	#include "line/ConsoleWindow.cpp"
+#endif
+
 #ifdef USEMSV_OPENSSL
 	#include "crossplatform/openssl.cpp"
 #endif
@@ -195,6 +212,10 @@ int main(int args, char* arg[]){
 
 #ifdef USEMSV_NMEA
 	#include "sat/nmea.cpp"
+#endif
+
+#ifdef USEMSV_BUFECHO
+	#include "special/bufecho.cpp"
 #endif
 
 

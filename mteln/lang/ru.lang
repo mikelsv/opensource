@@ -1,0 +1,92 @@
+
+:def 'lang'
+:else 'lang'
+:end
+
+:def 'Warning: Uncnown parameter:'
+:else 'Предупреждение: Неизвестный параметр:'
+:end
+
+:def 'Usage: mteln [flags: -flag val ] [--listen] host:port'
+:else 'Использование: mteln [flags: -flag val ] [--listen] Хост:порт'
+:end
+
+:def ' ## msv options: use --usemsv --help'
+:else ' ## msv опции: используйте --usemsv --help'
+:end
+
+:def ' ## info'
+:else ' ## информация'
+:end
+
+:def 'show this help message'
+:else 'показать эту справку'
+:end
+
+:def 'print versions list'
+:else 'вывести список версий'
+:end
+
+:def ' ## actions'
+:else ' ## действия'
+:end
+
+:def 'bind to local ip'
+:else 'привязать соединение к локальнопу ip'
+:end
+
+:def 'listen port'
+:else 'слушать порт'
+:end
+
+:def ' ## options'
+:else ' ## опции'
+:end
+
+:def 'buffering input (wait ENTER key)'
+:else 'включить буферизацию ( вывод по нажатию клавиши ENTER )'
+:end
+
+:def 'no input echo'
+:else 'не показывать вводимые символы'
+:end
+
+:def 'Connect to'
+:else 'Соедиение с'
+:end
+
+:def 'Bind'
+:else 'Привязка'
+:end
+
+:def 'Connection refused'
+:else 'Соединение сброшено'
+:end
+
+:def 'Connected'
+:else 'Соединено'
+:end
+
+:def 'Listen'
+:else 'Слушаю'
+:end
+
+:def 'Listen fail'
+:else 'Прослушивание не удалось'
+:end
+
+:def 'Accept fail'
+:else 'Прием соединения не удался'
+:end
+
+:def 'Accept connection'
+:else 'Соединение принято'
+:end
+
+:def 'Connection closed'
+:else 'Соединение закрыто'
+:end
+
+:def 'no buffering input'
+:else 'отключить буфферизацию'
+:end
