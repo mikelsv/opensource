@@ -37,7 +37,11 @@ public:
 #endif
 #endif
 
-#pragma pack(4)
+#ifndef WIN32
+	#include "net/if_arp.h"
+#endif
+
+//#pragma pack(4)
 
 //—труктура заголовка IP-пакета
 /*typedef struct IPHeader {
@@ -69,8 +73,8 @@ struct iphdr{
     unsigned int daddr;			// IP-адрес назначени€
     // The options start here.
   };
-#else
-#include "netinet/ip.h"
+//#else
+//#include "netinet/ip.h"
 #endif
 
 
@@ -196,8 +200,6 @@ struct arphdr{
 #endif
   };
 
-#else
-#include "net/if_arp.h"
 #endif
 
 #pragma pack(push, 1)
@@ -319,4 +321,4 @@ public:
 
 };
 
-#pragma pack(pop)
+//#pragma pack(pop)

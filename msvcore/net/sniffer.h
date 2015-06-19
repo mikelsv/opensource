@@ -107,7 +107,7 @@ int Start(unsigned int ip=0){
 			continue;
 
 		if(paddr->ifa_addr->sa_family == AF_INET){ // IP v4
-			int tip = ((struct sockaddr_in *)paddr->ifa_netmask)->sin_addr.s_addr;
+			int tip = ((struct sockaddr_in *)paddr->ifa_addr)->sin_addr.s_addr;
 			if(tip && ( ip && tip == ip || !ip && tip != iploc)){
 				//printf("interface: %s\r\n", paddr->ifa_name);
 				strcpy((char*)device, paddr->ifa_name);
