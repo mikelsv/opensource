@@ -62,6 +62,7 @@ int main(int args, char* arg[]){
 
 // Other: 
 // #define USEMSV_MSL_FL - use MSL Fast Line
+// #define USEMSV_CONFLINE - use ConfLine
 // #define USEMSV_MODLINE - use ModLine
 
 // Lists:
@@ -74,6 +75,10 @@ int main(int args, char* arg[]){
 // #define USEMSV_STORMSERVER - use storm server
 // #define USEMSV_HTTP - use http functions
 // #define USEMSV_WEBSOCKETS - use WebSockets client and listen_websockets for storm
+// #define USEMSV_LIGHTSERVER - use light server
+
+// Network
+// #define USEMSV_TRAFFIX - use Traffix class
 
 // Extensions:
 // #define USEMSV_PCRE - use PCRE functions // add to include path to pcre.h and pcre.lib
@@ -206,8 +211,20 @@ int main(int args, char* arg[]){
 	#include "server/storm/storm-include.h"
 #endif
 
+#ifdef USEMSV_LIGHTSERVER
+	#include "server/light/light.h"
+#endif
+
 #ifdef USEMSV_ANDOID
 	#include "android/device.cpp"
+#endif
+
+#ifdef USEMSV_CONFLINE
+	#include "special/confline.cpp"
+#endif
+
+#ifdef USEMSV_TRAFFIX
+	#include "net/traffix.h"
 #endif
 
 #ifdef USEMSV_NMEA

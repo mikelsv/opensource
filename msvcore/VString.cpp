@@ -207,6 +207,26 @@ VString PartLine(VString line, VString &two, VString el){
 	return VString(line.uchar(), pos-line.uchar());
 }
 
+VString PartLineTwo(VString line, VString &two, VString el, VString el2){
+	unsigned char *pos = line, *pos2 = pos;
+	
+	if(!rtms(line.endu(), el, el, pos))
+		pos = line.endu();
+	
+	if(!rtms(line.endu(), el2, el2, pos2))
+		pos2 = line.endu();
+
+	pos = pos < pos2 ? pos : pos2;
+
+	if(pos == line.endu()){
+		 two.Clean();
+		 return line;
+	}
+
+	two.setu(pos+el.sz, line.endu()-pos-el.sz);
+	return VString(line.uchar(), pos-line.uchar());
+}
+
 VString PartLineFind(VString line, VString el){
 	unsigned char *pos=line;
 	if(!rtms(line.endu(), el, el, pos)){ return VString(); }

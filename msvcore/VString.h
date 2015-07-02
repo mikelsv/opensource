@@ -258,13 +258,15 @@ int rts_con(unsigned short *ln, unsigned int sz, unsigned short *&line);
 unsigned char* rtms(unsigned char *line, unsigned char *to, unsigned char *fr, unsigned int frs);
 
 // PartLine
-VString PartLine(VString line, VString &two, VString el="=");
-VString PartLineFind(VString line, VString el);
-VString PartLineM(VString line, VString &two, VString &three, VString &four, VString &five, VString el);
+VString PartLine(VString line, VString &two, VString el = "=");
+VString PartLineTwo(VString line, VString &two, VString el = " ", VString el2 = "\t");
 VString PartLineO(VString line, VString el);
-VString PartLineIfO(VString line, VString el);
 VString PartLineOT(VString line, VString el);
 VString PartLineDouble(VString line, VString el, VString er);
+
+VString PartLineFind(VString line, VString el);
+VString PartLineM(VString line, VString &two, VString &three, VString &four, VString &five, VString el);
+VString PartLineIfO(VString line, VString el);
 VString PartLineKV(VString line, VString &key, VString &val, VString elv, VString el);
 
 // ParamLine

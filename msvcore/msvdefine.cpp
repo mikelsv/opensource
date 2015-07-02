@@ -115,7 +115,6 @@ public:
 	VString addnfr(VString line){
 		return VString(&el(addnf(line, line)), line);
 	}
-
 };
 
 HLString& HLString::operator+(const MString& string){ add(string, string); return *this; }

@@ -407,13 +407,14 @@ VString dnsitos(int t){
 }
 
 
+//#pragma (push, 1)
 class DnsData{ public:
 DnsData *_n;
 unsigned int ttl;
 unsigned short type;
 unsigned short pri;
 int n, v, _soa;
-unsigned char d[0];
+unsigned char d[1];
 // if soa + 20.
 
 VString key(){ return VString(d, n); }
@@ -430,6 +431,7 @@ unsigned int ip(){ if(type==DNS_TYPE_A && v==4){ return *(unsigned int*)&d[n]; }
 IP6_ADDRESS ip6(){ if(type==DNS_TYPE_AAAA && v==16){ return *(IP6_ADDRESS*)&d[n]; } return IP6_ADDRESS(); }
 
 };
+//#pragma (pop)
 
 class DnsQuest{
 	unsigned char data[S8K]; int ds;
@@ -538,7 +540,7 @@ public:
 			if(!ddata) ddata=d; while(dd){ if(!dd->_n){ dd->_n=d; break; } dd=dd->_n; }
             
 			// domain
-			d->n=cpyname(l, to, &data[ds], line); if(!l){ dd->_n=0; break; }
+			d->n=cpyname(l, to, d->d, line); if(!l){ dd->_n=0; break; }
 			ds+=d->n;
 //print("n:", VString(&data[ds], d->n), "; ");
 
@@ -559,13 +561,17 @@ public:
 			switch(hd->type){
 				case DNS_TYPE_A:
 					if(hd->sz!=4) break;
-					d->v=4; *(unsigned int*)&data[ds]=htonl(*(unsigned int*)l); ds+=4;
+					d->v=4; *(unsigned int*)&d->d[d->n]=htonl(*(unsigned int*)l); ds+=4;
 //print("ip:", ipitos(*(unsigned int*)&data[ds]), "; ");
  
 					break;
 				case DNS_TYPE_AAAA:
 					if(hd->sz!=16) break;
-					d->v=16; memcpy(&data[ds], l, 16); ds+=16;
+					d->v=16; ds+=16; // memcpy(&d->d[d->n], l, 16); ds+=16;
+					for(int i = 0; i < 8; i++){
+						d->d[d->n + i * 2] = *(l + i * 2 + 1);
+						d->d[d->n + i * 2 + 1] = *(l + i * 2);
+					}
 					break;
 				case DNS_TYPE_MX:
 					d->pri=htons(*((unsigned short*)l)); l+=2;
@@ -577,19 +583,21 @@ public:
 				case DNS_TYPE_MG:
 				case DNS_TYPE_MR:
 				case DNS_TYPE_PTR:
-					d->v=cpyname(l, to, &data[ds], line); ds+=d->v; if(!l){ dd->_n=0; break; }
+					d->v=cpyname(l, to, &d->d[d->n], line); ds+=d->v; if(!l){ dd->_n=0; break; }
 					break;
 				case DNS_TYPE_TXT:
-					memcpy(&data[ds], l+1, *l); d->v=*l; ds+=*l;
+					memcpy(&d->d[d->n], l+1, *l); d->v=*l; ds+=*l;
 					break;
 				case DNS_TYPE_SOA:
-					d->v=cpyname(l, to, &data[ds], line); ds+=d->v;  if(!l){ dd->_n=0; break; }
-					d->_soa=cpyname(l, to, &data[ds], line); ds+=d->_soa;  if(!l){ dd->_n=0; break; }
-					*(unsigned int*)&data[ds]=htonl(*(unsigned int*)l); l+=4; ds+=4;
-					*(unsigned int*)&data[ds]=htonl(*(unsigned int*)l); l+=4; ds+=4;
-					*(unsigned int*)&data[ds]=htonl(*(unsigned int*)l); l+=4; ds+=4;
-					*(unsigned int*)&data[ds]=htonl(*(unsigned int*)l); l+=4; ds+=4;
-					*(unsigned int*)&data[ds]=htonl(*(unsigned int*)l); l+=4; ds+=4;
+					int p = 0;
+					p = d->n;
+					d->v=cpyname(l, to, &d->d[p], line); ds+=d->v; if(!l){ dd->_n=0; break; } p += d->v;
+					d->_soa=cpyname(l, to, &d->d[p], line); ds+=d->_soa; if(!l){ dd->_n=0; break; } p += d->_soa;			
+					*(unsigned int*)&d->d[p]=htonl(*(unsigned int*)l); l+=4; ds+=4; p+=4;
+					*(unsigned int*)&d->d[p]=htonl(*(unsigned int*)l); l+=4; ds+=4; p+=4;
+					*(unsigned int*)&d->d[p]=htonl(*(unsigned int*)l); l+=4; ds+=4; p+=4;
+					*(unsigned int*)&d->d[p]=htonl(*(unsigned int*)l); l+=4; ds+=4; p+=4;
+					*(unsigned int*)&d->d[p]=htonl(*(unsigned int*)l); l+=4; ds+=4; p+=4;
 					break;
 			}
 			l=ll; if(l>to) break; rsz++;
