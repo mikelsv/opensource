@@ -403,7 +403,7 @@ public:
 	}
 
 	int Request(VString url){
-		int ret, r=repeat+1;
+		int ret = 0, r = repeat + 1;
 		while(r){
 			ret=DoRequest(url);
 			if(ret)
@@ -433,16 +433,34 @@ protected:
 		}
 #endif
 		// ls+ r_method ? r_method : ( r_post ? "POST" : "GET" );
-		if(r_method) ls+r_method;
-		else ls+ (r_post ? "POST" : "GET");
+		if(r_method)
+			ls + r_method;
+		else
+			if(r_post)
+				ls + "POST";
+			else
+				ls + "GET";
 		//ls+" "+EncodeUrl(il.GetPathFileQuest())+" HTTP/1.0\r\n";
 		ls+" "+il.GetPathFileQuest()+" HTTP/1.0\r\n";
 		
 			ls+"Host: "+il.domain+"\r\n";
 		if(!minimal){			
 			//ls+"User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/21.0\r\n";
-			ls+"User-Agent: "+ (r_agent ? r_agent : "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/22.0"); ls+"\r\n";
-			ls+"Accept: "+ (r_accept ? r_accept : "*/*"); ls+"\r\n";
+			
+			ls + "User-Agent: ";
+			if(r_agent)
+				ls + r_agent;
+			else
+				ls +"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/22.0";
+			ls+"\r\n";
+
+			ls + "Accept: ";
+			if(r_accept)
+				ls + r_accept;
+			else
+				ls + "*/*";
+			ls+"\r\n";
+
 			//ls+"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n";
 			//ls+"Accept: */*\r\n";
 			//ls+"Accept-Charset: windows-1251,utf-8;q=0.7,*;q=0.7\r\n";
@@ -456,7 +474,7 @@ protected:
 			ls+"Cookie: "+r_cookies+"\r\n";
 		}
 		if(r_post){
-			ls+"Content-Length: "+itos(r_post.size())+"\r\n";
+			ls+"Content-Length: " + r_post.size() + "\r\n";
 			ls+"Content-Type: application/x-www-form-urlencoded\r\n";
 		}
 		ls+"\r\n";
@@ -678,7 +696,7 @@ public:
 	}
 
 	int Request(VString url){
-		int ret, r=repeat+1;
+		int ret = 0, r = repeat + 1;
 		while(r){
 			ret=DoRequest(url);
 			if(ret)
@@ -728,7 +746,7 @@ protected:
 			ls+"Referrer: "+r_referrer+"\r\n";
 
 		if(r_post){
-			ls+"Content-Length: "+itos(r_post.size())+"\r\n";
+			ls+"Content-Length: " + r_post.size() + "\r\n";
 			ls+"Content-Type: application/x-www-form-urlencoded\r\n";
 		}
 

@@ -59,9 +59,11 @@ int main(int args, char* arg[]){
 // #define USEMSV_XDATACONT - use XDataContainer ( Parsers: XML, Json )
 // #define USEMSV_AMF - use amf encoder/decoder
 // #define USEMSV_NMEA - use nmea functions
+// #define USEMSV_CJX - use CJX container
 
 // Other: 
 // #define USEMSV_MSL_FL - use MSL Fast Line
+// #define USEMSV_MSL_FV - use MSL Five
 // #define USEMSV_CONFLINE - use ConfLine
 // #define USEMSV_MODLINE - use ModLine
 
@@ -69,7 +71,8 @@ int main(int args, char* arg[]){
 // #define USEMSV_ILIST - use IList template dunamic array. Vector, one resized memory block.
 // #define USEMSV_MLIST - use MList template dunamic array
 // #define USEMSV_OLIST - use OList template dunamic array
-// #define USEMSV_ULIST - use UList template dynamic array. // In process... Testing...
+// #define USEMSV_ULIST - use UList template dynamic array. // defined by default 
+// #define USEMSV_FSTRING - use FString class // defined by default 
 
 // Server:
 // #define USEMSV_STORMSERVER - use storm server
@@ -95,6 +98,7 @@ int main(int args, char* arg[]){
 
 // Special:
 // #define USEMSV_BUFECHO - Input / Output buffer echo control
+// #define USEMSV_TESTS - Testing
 
 #ifndef PROJECTNAME
 	#error Please set #define PROJECTNAME "you_project_name"
@@ -109,6 +113,10 @@ int main(int args, char* arg[]){
 // Include Real Strings
 #include "MString.h"
 
+// Include Temp or Thread String
+#include "TString.h"
+
+// Include Defines uses VString & MString
 // Include Defines Mobile (???)
 #include "msvdefine_m.h"
 
@@ -126,6 +134,7 @@ int main(int args, char* arg[]){
 	#include "flash/flash.cpp"
 #endif
 
+#include "list/UList.cpp"
 #include "msvdefine.cpp"
 
 #include "crossplatform/treads.cpp"
@@ -135,6 +144,9 @@ int main(int args, char* arg[]){
 //#include "msvio.h"
 //#include "msvnet.h"
 #include "crossplatform/msvnet.cpp"
+
+#include "list/FString.cpp"
+//#include "list/TString.cpp" // Thread String
 
 // intercept malloc & free
 #ifdef USEMSV_INTERCEPT_MALLOC
@@ -149,6 +161,10 @@ int main(int args, char* arg[]){
 	#include "proto/xdatacont.cpp"
 #endif
 
+#ifdef USEMSV_CJX
+	#include "proto/cjx.cpp"
+#endif
+
 #ifdef USEMSV_MLIST
 	#include "list/MList.h"
 #endif
@@ -159,11 +175,12 @@ int main(int args, char* arg[]){
 
 #ifdef USEMSV_OLIST
 	#include "list/OList.h"
+	//#include "list/OList3.h"
 #endif
 
-#ifdef USEMSV_ULIST
-	#include "list/UList.h"
-#endif
+//#ifdef USEMSV_ULIST
+//	#include "list/UList.h"
+//#endif
 
 #ifdef USEMSV_AMF
 	#include "proto/amf.cpp"
@@ -202,9 +219,17 @@ int main(int args, char* arg[]){
 	#include "msl-fl/msl-fl.h"
 #endif
 
+#ifdef USEMSV_MSL_FV
+	#include "msl/msl-five.h"
+#endif
+
 #ifdef USEMSV_HTTP
 	#include "crossplatform/iheader.cpp"
 	#include "crossplatform/http.cpp"
+#endif
+
+#ifdef USEMSV_CONFLINE
+	#include "special/confline.cpp"
 #endif
 
 #ifdef USEMSV_STORMSERVER
@@ -219,10 +244,6 @@ int main(int args, char* arg[]){
 	#include "android/device.cpp"
 #endif
 
-#ifdef USEMSV_CONFLINE
-	#include "special/confline.cpp"
-#endif
-
 #ifdef USEMSV_TRAFFIX
 	#include "net/traffix.h"
 #endif
@@ -233,6 +254,10 @@ int main(int args, char* arg[]){
 
 #ifdef USEMSV_BUFECHO
 	#include "special/bufecho.cpp"
+#endif
+
+#ifdef USEMSV_TESTS
+	#include "special/tests.cpp"
 #endif
 
 

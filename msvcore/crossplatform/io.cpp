@@ -162,8 +162,8 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////////////////// File IO
-MString LoadFile(VString file){ if(!file) return MString();
-	MString ret; // *file.end()==0 ? file : MString(file)
+TString LoadFile(VString file){ if(!file) return TString();
+	TString ret; // *file.end()==0 ? file : MString(file)
 	HFILE fl; fl=CreateFile(file, O_RDONLY, S_IREAD| S_IWRITE);
 	if(fl==-1) return MString();
 	ret.Reserv(GetFileSize(fl));
@@ -182,7 +182,7 @@ bool IsFile(VString file){
 unsigned int SaveFile(VString file, VString data){
 	if(!file)
 		return 0;
-	MString ret;
+
 	HFILE fl; fl=CreateFile(file, O_RDWR|O_CREAT, S_IREAD| S_IWRITE); //  | S_IRGRP | S_IROTH
 	if(fl==-1) return 0;
 	unsigned int wr=WriteFile(fl, data, data); SetEndOfFile(fl);
@@ -191,7 +191,6 @@ unsigned int SaveFile(VString file, VString data){
 }
 
 unsigned int SaveFileAppend(VString file, VString data){
-	MString ret;
 	HFILE fl; fl=CreateFile(file, O_RDWR|O_CREAT, S_IREAD| S_IWRITE); //  | S_IRGRP | S_IROTH
 	if(fl==-1) return 0;
 	SetFilePointer(fl, 0, FILE_END);
@@ -616,7 +615,7 @@ while(line<to){
 		case '.': // 2
 			if(ret==path.uchar() || ( *(ret-1)=='\\' || *(ret-1)=='/')){ r=0; c=0;
 				if(line>ln){ memcpy(ret, ln, line-ln); ret+=line-ln; ln=line; }
-				while(*line=='.'){ *line++; r++; }
+				while(line < to && *line=='.'){ *line++; r++; }
 					if(*line=='\\' || *line=='/' || line>=to){
 						if(r==1) ln=line+1;
 						else{

@@ -207,21 +207,224 @@ int64 _msvcore_memcon_data::afcount = 0;
 int msvcore_memcon_malloc_count = 0, msvcore_memcon_free_count = 0;
 _msvcore_memcon_data *msvcore_memcon_data = 0;
 int msvcore_memcon_data_sz = 0;
+void **msvcore_memcon_data_void = 0;
 
 bool MemConLock();
 bool MemConUnLock();
 
-void * msvcore_memcon_malloc(int sz){
-	MemConLock();
-	msvcore_memcon_malloc_count ++;
-	MemConUnLock();
-	return malloc(sz);
+void msvcore_memcon_print();
+int msvcore_memcon_print_ltime = 0;
+
+
+// Stack
+#if USEMSV_MEMORYCONTROL_GLOBAL && WIN32
+#include "DbgHelp.h"
+#include <WinBase.h>
+#pragma comment(lib, "Dbghelp.lib")
+
+void msvcore_memcon_stack_print(){
+	HANDLE process;
+	void *stack[100];
+	unsigned short frames;
+	unsigned char buf[sizeof(SYMBOL_INFO) + 256 * sizeof(char)];
+	SYMBOL_INFO *symbol = (SYMBOL_INFO*)buf;
+
+	process = GetCurrentProcess();
+	SymInitialize(process, NULL, TRUE);
+	frames = CaptureStackBackTrace(0, 100, stack, NULL);
+//	symbol = (SYMBOL_INFO*) calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+	symbol->MaxNameLen = 255;
+	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+	for(int i = 0; i < frames; i++){
+		SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
+		printf("%i: %s - 0x%0X\n", frames - i - 1, symbol->Name, symbol->Address);
+	}
+
+	//free(symbol);
+	return ;
 }
 
-void msvcore_memcon_free(void *v){
+unsigned int msvcore_memcon_stack_crc(){
+	HANDLE process;
+	void *stack[100];
+	unsigned short frames;
+	unsigned int ret = 0;
+
+	process = GetCurrentProcess();
+	SymInitialize(process, NULL, TRUE);
+	frames = CaptureStackBackTrace(0, 100, stack, NULL);
+
+	for(int i = 0; i < frames; i++)
+		ret ^= (unsigned int)stack[i];
+
+	return ret;
+}
+#else
+void msvcore_memcon_stack_print(){ return ; } 
+unsigned int msvcore_memcon_stack_crc(){ return 0; }
+#endif
+
+// Find Leak
+struct msvcore_memon_findleak{
+	msvcore_memon_findleak *_p, *_n;
+	unsigned int crc;
+};
+
+msvcore_memon_findleak *msvcore_memon_findleak_a = 0;
+unsigned int msvcore_memon_findleak_lprint = 0;
+// End of Find Leak
+
+
+class msvcore_memcon_class{
+public:
+
+	msvcore_memcon_class(){
+
+	}
+
+	~msvcore_memcon_class(){
+		free(msvcore_memcon_data);
+		free(msvcore_memcon_data_void);
+	}
+
+} msvcore_memcon_class;
+
+#ifdef USEMSV_MEMORYCONTROL_FINDLEAK
+#ifndef USEMSV_MEMORYCONTROL_FINDLEAK_PRINT_BUFSZ
+#define USEMSV_MEMORYCONTROL_FINDLEAK_PRINT_BUFSZ S1K
+#endif
+
+void msvcore_memcon_findleak_print(){
+	unsigned int id[USEMSV_MEMORYCONTROL_FINDLEAK_PRINT_BUFSZ], count[USEMSV_MEMORYCONTROL_FINDLEAK_PRINT_BUFSZ], size = 0;
+	memset(&id, 0, sizeof(id));
+	memset(&count, 0, sizeof(count));
+
 	MemConLock();
-	msvcore_memcon_free_count ++;
+
+	msvcore_memon_findleak *p = msvcore_memon_findleak_a;
+	while(p){
+		int ok = 0;
+
+		for(int i = 0; i < size; i++){
+			if(p->crc == id[i]){
+				count[i] ++;
+				ok = 1;
+				break;
+			}
+		}
+
+		if(!ok){
+			if(size < USEMSV_MEMORYCONTROL_FINDLEAK_PRINT_BUFSZ){
+				id[size] = p->crc;
+				count[size] = 1;
+				size ++;
+				ok = 1;
+			}
+		}
+
+		if(!ok){
+			printf("FAIL! Need more USEMSV_MEMORYCONTROL_FINDLEAK_PRINT_BUFSZ!\r\n");
+		}
+
+		p = p->_n;
+	}
+
+	printf("Findleak Results: \r\n");
+	for(int i = 0; i < size; i++){
+#ifdef USEMSV_MEMORYCONTROL_FINDLEAK_PRINTMIN
+		if(count[i] >= USEMSV_MEMORYCONTROL_FINDLEAK_PRINTMIN)
+#endif
+		printf("%d: %d\r\n", id[i], count[i]);
+	}
+
 	MemConUnLock();
+
+	return ;
+}
+#endif
+
+
+void * msvcore_memcon_malloc(int sz, _msvcore_memcon_data *item){
+	int prn = 0;
+
+#ifdef USEMSV_MEMORYCONTROL_PRINT
+	int tm = time(0);
+	if(msvcore_memcon_print_ltime + USEMSV_MEMORYCONTROL_PRINT < tm){
+		msvcore_memcon_print_ltime = tm;
+		prn = 1;
+	}
+#endif
+
+#ifdef USEMSV_MEMORYCONTROL_FINDLEAK
+	int findleak = 0;
+	if(item->id == USEMSV_MEMORYCONTROL_FINDLEAK){
+		findleak = 1;
+		sz += sizeof(msvcore_memon_findleak);
+	}
+#endif
+
+	if(prn)
+		msvcore_memcon_print();
+
+	unsigned char *ret = (unsigned char*)malloc(sz);
+
+#ifdef USEMSV_MEMORYCONTROL_FINDLEAK
+	if(findleak){
+		msvcore_memon_findleak *p = (msvcore_memon_findleak*)ret;
+
+		MemConLock();
+
+		if(!msvcore_memon_findleak_a){
+			p->_n = 0;
+		} else{
+			p->_n = msvcore_memon_findleak_a;
+			msvcore_memon_findleak_a->_p = p;
+		}
+
+		msvcore_memon_findleak_a = p;
+		p->_p = 0;
+
+		p->crc = msvcore_memcon_stack_crc();
+
+#if USEMSV_MEMORYCONTROL_FINDLEAK_PRINT
+		if(msvcore_memon_findleak_lprint + USEMSV_MEMORYCONTROL_FINDLEAK_PRINT < time(0)){
+			msvcore_memon_findleak_lprint = time(0);
+			msvcore_memcon_findleak_print();
+		}
+#endif
+
+		MemConUnLock();
+
+		ret += sizeof(msvcore_memon_findleak);
+	}
+#endif
+
+	return ret;
+
+}
+
+void msvcore_memcon_free(void *v, _msvcore_memcon_data *item){
+#ifdef USEMSV_MEMORYCONTROL_FINDLEAK
+	if(item->id == USEMSV_MEMORYCONTROL_FINDLEAK){
+		msvcore_memon_findleak *p = (msvcore_memon_findleak*)((unsigned char*)v - sizeof(msvcore_memon_findleak));
+		
+		MemConLock();
+		if(p == msvcore_memon_findleak_a){
+			msvcore_memon_findleak_a = p->_n;
+			msvcore_memon_findleak_a->_p = 0;
+		} else{
+			p->_p->_n = p->_n;
+			p->_n->_p = p->_p;
+		}
+
+		MemConUnLock();
+
+
+		v = p;
+	}
+#endif
+
 	return free(v);
 }
 
@@ -233,6 +436,9 @@ _msvcore_memcon_data* msvcore_memcon_find(int id, const char *name){
 
 	if(msvcore_memcon_data_sz % 128 == 0){
 		_msvcore_memcon_data *d = (_msvcore_memcon_data*)malloc(sizeof(_msvcore_memcon_data) * (msvcore_memcon_data_sz + 128));
+		if(!d)
+			return 0;
+
 		memcpy(d, msvcore_memcon_data, sizeof(_msvcore_memcon_data) * msvcore_memcon_data_sz);
 		free(msvcore_memcon_data);
 		msvcore_memcon_data = d;
@@ -242,35 +448,94 @@ _msvcore_memcon_data* msvcore_memcon_find(int id, const char *name){
 	return &msvcore_memcon_data[msvcore_memcon_data_sz++];
 }
 
-void* msvcore_memcon_malloc2(int tid, void *t, const char *name, int size, int mallocsize){
+
+_msvcore_memcon_data* msvcore_memcon_malloc_c(int tid, const char *name){
 	MemConLock();
-	msvcore_memcon_find(tid, name)->m();
+	_msvcore_memcon_data *item = msvcore_memcon_find(tid, name);
+	item->m();
+
+//#if USEMSV_MEMORYCONTROL_GLOBAL && USEMSV_MEMORYCONTROL_TEST1
+//	if(!msvcore_memcon_data_void){
+//		msvcore_memcon_data_void = (void**)malloc(S16K * sizeof(void*));
+//		memset(msvcore_memcon_data_void, 0, S16K * sizeof(void*));
+//	}
+//
+//	for(int i = 0; i < S16K; i++)
+//		if(!msvcore_memcon_data_void[i]){
+//			msvcore_memcon_data_void[i] = mem;
+//			break;
+//		}	
+//#endif
+
+	msvcore_memcon_malloc_count ++;
+
 	MemConUnLock();
-	return msvcore_memcon_malloc(mallocsize);
+	return item;
+}
+
+_msvcore_memcon_data* msvcore_memcon_free_c(int tid, void *mem){
+	MemConLock();
+	_msvcore_memcon_data *item = msvcore_memcon_find(tid, 0);
+	item->f();
+
+#if USEMSV_MEMORYCONTROL_GLOBAL && USEMSV_MEMORYCONTROL_TEST1
+	int f = 0;
+
+	for(int i = 0; i < S16K; i++)
+		if(msvcore_memcon_data_void[i] == mem){
+			msvcore_memcon_data_void[i] = 0;
+			f = 1;
+			break;
+		}
+
+	if(!f || !mem)
+		int ff = 1; // print("Fail free().\r\n");
+
+#endif
+
+	msvcore_memcon_free_count ++;
+
+	MemConUnLock();
+	return item;
+}	
+
+
+void* msvcore_memcon_malloc2(int tid, void *t, const char *name, int size, int mallocsize){
+	_msvcore_memcon_data *item = msvcore_memcon_malloc_c(tid, name);
+	void *ret = msvcore_memcon_malloc(mallocsize, item);
+	return ret;
 }
 
 void msvcore_memcon_free2(int tid, void *t, const char *name, int size, void *freev){
-	MemConLock();
-	msvcore_memcon_find(tid, name)->f();
-	MemConUnLock();
-	return msvcore_memcon_free(freev);
+	if(!freev)
+		return ;
+
+	_msvcore_memcon_data *item = msvcore_memcon_free_c(tid, freev);
+	return msvcore_memcon_free(freev, item);
 }		
 
 #ifdef USEMSV_MEMORYCONTROL_GLOBAL
 	void * operator new(size_t sz) throw(){
-		return msvcore_memcon_malloc(sz);
+		return msvcore_memcon_malloc2(1, 0, "class Malloc", 0, sz);
+		//return msvcore_memcon_malloc(sz);
 	}
 	void operator delete(void * p) throw(){
-		return msvcore_memcon_free(p);
+		return msvcore_memcon_free2(1, 0, "class Malloc", 0, p);
+		//return msvcore_memcon_free(p);
 	}
 #endif
 
 #else
-	void * msvcore_memcon_malloc(int sz);
+	struct _msvcore_memcon_data;
+
+	void* msvcore_memcon_malloc(int sz);
 	void msvcore_memcon_free(void *v);
 
 	void* msvcore_memcon_malloc2(int tid, void *t, const char *name, int size, int mallocsize);
 	void msvcore_memcon_free2(int tid, void *t, const char *name, int size, void *freev);
+
+	_msvcore_memcon_data* msvcore_memcon_malloc_c(int tid, const char *name);
+	_msvcore_memcon_data* msvcore_memcon_free_c(int tid, void *mem);
 
 	#ifdef USEMSV_MEMORYCONTROL_GLOBAL
 		void* operator new(size_t sz);
@@ -290,11 +555,14 @@ void msvcore_memcon_free2(int tid, void *t, const char *name, int size, void *fr
 #endif
 // Memory Control End
 
-
+	
 #define _del(v){ if(v){ free(v); } } //msv_memoty_control_destr(1, 0); } }
 //#define _dela(v){ if(v){ delete[] v; msv_memoty_control_destr(1, 0); } }
 #define _deln(v){ if(v){ free(v); v=0; } } //msv_memoty_control_destr(1, 0); } }
 #define _newn(sz) (unsigned char*) malloc(sz) //msv_memoty_control_malloc(sz)
+
+#define msvnew(a, b) a = (b*) malloc(sizeof(b)); new(a)b;
+#define msvdelete(a, b) a->~b(); free(a);
 
 
 // Types
@@ -400,9 +668,10 @@ double stod(char*line, unsigned int size=0, int radix=10);
 #define ishandle(h) ((h) && ((int)h)!=-1)
 
 // Test time: tbtime(); tctime(); tetime(); int sec=sec, millim=micro sec.
-#define tbtime timeb ft, fte; int tbtime_sec, tbtime_millim; ftime(&ft); // print("Time: ", itos(sec*1000+millitm), "ms.\r\n");
+#define tbtime timeb ft, fte; int tbtime_sec, tbtime_millim, tbtime_result; ftime(&ft); // print("Time: ", itos(sec*1000+millitm), "ms.\r\n");
 #define tctime ftime(&ft); // continue
-#define tetime ftime(&fte); tbtime_sec=fte.time-ft.time; tbtime_millim=fte.millitm-ft.millitm; if(fte.millitm<ft.millitm){ tbtime_millim+=1000; tbtime_sec--; }
+#define tetime ftime(&fte); tbtime_sec=fte.time-ft.time; tbtime_millim=fte.millitm-ft.millitm; if(fte.millitm<ft.millitm){ tbtime_millim+=1000; tbtime_sec--; } tbtime_result = tbtime_sec * 1000 + tbtime_millim;
+// print()
 //#define tcetime ftime(&fte); sec=fte.time-ft.time; millim=fte.millitm-ft.millitm; if(fte.millitm<ft.millitm){ millim+=1000; sec--; }
 
 
@@ -526,10 +795,10 @@ int globalerror(const char*line);
 //  msv_memoty_control_constr(tid, name, size);
 
 #ifdef WIN32
-#define MSVMEMORYCONTROLC //\
+#define MSVMEMORYCONTROLC msvcore_memcon_malloc_c(typeid(*this).hash_code(), typeid(*this).name());
 //	msv_memoty_control_constr(typeid(*this).hash_code(), this, typeid(*this).name(), sizeof(*this));
 
-#define MSVMEMORYCONTROLD //\
+#define MSVMEMORYCONTROLD msvcore_memcon_free_c(typeid(*this).hash_code(), this);
 //	msv_memoty_control_destr(typeid(*this).hash_code(), this);
 
 #else

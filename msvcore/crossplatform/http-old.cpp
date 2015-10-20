@@ -151,7 +151,8 @@ head.Header("Accept-Language: ru-ru,ru;q=0.8,en-us;q=0.5,en;q=0.3");
 //head.Header("Referer: http://www.muzoff.ru/pages/51/5135.shtml");
 
 if(post){
-	head.Header("Content-Length: "+itos(post.size()));
+	TString t;
+	head.Header(t.Add("Content-Length: ", itos(post.size())));
 	head.Header("Content-Type: application/x-www-form-urlencoded");
 }
 asend+=head.SendHeader( !post ? "GET" : "POST", link.GetPathFileQuest(), "HTTP/1.0", sock, 1); // send_(sock, MString("\r\n"));

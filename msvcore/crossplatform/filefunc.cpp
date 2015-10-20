@@ -52,7 +52,7 @@ inline int fileeof(HFILE hfile){ return ftruncate(hfile, lseek64(hfile, 0, SEEK_
 #endif
 
 
-HFILE CreateFile(VString file, int op, int pm){ return _open(MString(file), op|O_BINARY, pm); }
+HFILE CreateFile(VString file, int op, int pm){ return _open(TString(file), op|O_BINARY, pm); }
 int ReadFile(HFILE fl, void* buf, unsigned int sz){ return _read(fl, buf, sz); }
 int WriteFile(HFILE fl, const void* buf, unsigned int sz){ return _write(fl, buf, sz); }
 int64 GetFilePointer(HFILE fl){ return lseek64(fl, 0, FILE_CURRENT); }
@@ -61,7 +61,7 @@ int SetEndOfFile(HFILE hfile){ return fileeof(hfile); }
 
 sstat64 GetFileInfo(VString file){
 	sstat64 stt;// lsstat64 st;
-	MString fl=file;
+	TString fl=file;
 	if(_stati64(fl, &stt)) memset(&stt, 0, sizeof(stt));
 	//else{ stat64tomstat(stt, st); }
     return stt;
@@ -89,8 +89,8 @@ int64 GetFileSize(HFILE hfile){
 }
 
 
-bool IsDir(VString path){ sstat64 stt=GetFileInfo(MString(path)); return (stt.st_mode&S_IFDIR)!=0; }
-int MkDir(VString file, unsigned int mode=0){ return stdmkdir(MString(file), mode); }
+bool IsDir(VString path){ sstat64 stt=GetFileInfo(TString(path)); return (stt.st_mode&S_IFDIR)!=0; }
+int MkDir(VString file, unsigned int mode=0){ return stdmkdir(TString(file), mode); }
 
 
 int DeleteFile(VString file){ LFSNORMALPATH(it, file); return unlink(file); }

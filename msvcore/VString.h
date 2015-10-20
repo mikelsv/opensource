@@ -45,7 +45,7 @@ public:
 
 	// --------------------------------------------------- Create object  Создание обьекта
 
-	VString(const VString &line);
+	inline VString(const VString &line);
 	VString(const char *line);
 	VString(const unsigned char *line);
 	VString(const char *line, const unsigned int s);
@@ -67,8 +67,8 @@ public:
 
 	bool operator!()const;
 	operator void*()const;
-	operator char*()const;
-	operator unsigned char*()const;
+	inline operator char*()const;
+	inline operator unsigned char*()const;
 	operator int()const;
 	char operator[](int index) const;
 	char operator[](unsigned int index) const;

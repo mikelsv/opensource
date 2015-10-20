@@ -85,6 +85,134 @@ class  UMX_data{ public: UMX_data *n; unsigned int sz; char data[0]; };
 #include "MWnd/MRect.cpp"
 #include "crossplatform/mte.cpp"
 
+
+///////// HLString
+//typedef UList<char, 0, 0, 0> LString2;
+
+// emulate LString, pleasse DON't use it
+template<int stacksize>
+void HLStringX<stacksize>::add(char *data, unsigned int sz){
+	this->Add((unsigned char*)data, sz);
+}
+
+template<int stacksize>
+void HLStringX<stacksize>::add(const char data){
+	this->Add((unsigned char*)&data, 1);
+}
+
+template<int stacksize>
+int HLStringX<stacksize>::size(){
+	return this->Size();
+}
+
+template<int stacksize>
+int HLStringX<stacksize>::addnf(unsigned char *data, unsigned int sz){
+	int s = this->Size();
+	this->Add(data, sz, 1);
+	return s;
+}
+
+template<int stacksize>
+VString HLStringX<stacksize>::addnfr(VString line){
+	return VString(this->Add(line, line, 1), line);
+}
+
+template<int stacksize>
+char& HLStringX<stacksize>::el(int p){
+	return *(char*)this->Get(p);
+}
+
+template<int stacksize>
+unsigned char* HLStringX<stacksize>::addnfv(unsigned int sz){
+	return this->Add(0, sz, 1);
+}
+
+template<int stacksize>
+char* HLStringX<stacksize>::oneline(){
+	return (char*)this->OneLine();
+}
+
+template<int stacksize>
+HLStringX<stacksize>::operator bool(){
+	return this->Size() > 0;
+}
+
+template<int stacksize>
+HLStringX<stacksize>::operator const VString(){
+	return VString(this->OneLine(), this->Size());
+}
+
+template<int stacksize>
+VString HLStringX<stacksize>::String(){
+	return VString(this->OneLine(), this->Size());
+}
+
+
+//#ifndef WIN32
+template<int stacksize>
+HLStringX<stacksize>::operator const MString(){
+	return MString(this->OneLine(), this->Size());
+}
+//#endif
+
+template<int stacksize>
+int HLStringX<stacksize>::Send(SOCKET sock){
+	this->OneLine();
+	return send(sock, (char*)this->Get(0), this->Size(), 0);
+}
+
+template<int stacksize>
+void HLStringX<stacksize>::String(MString &line){
+	line.set(this->OneLine(), this->Size());
+}
+
+// end emulate LString, pleasse DON't use it
+
+#define HLString_Int_Template(T) \
+template<int stacksize> \
+HLStringX<stacksize>& HLStringX<stacksize>::operator+(const T i){ \
+	unsigned char data[S1K]; \
+	int s=prmf_itos(data, S1K, i); \
+	this->Add(data, s); \
+	return *this; \
+}
+
+HLString_Int_Template(short);
+HLString_Int_Template(unsigned short);
+HLString_Int_Template(int);
+HLString_Int_Template(unsigned int);
+HLString_Int_Template(int64);
+HLString_Int_Template(uint64);
+
+template<int stacksize>
+HLStringX<stacksize>& HLStringX<stacksize>::operator+(const VString& string){ add(string, string); return *this; }
+
+template<int stacksize>
+HLStringX<stacksize>& HLStringX<stacksize>::operator+(const MString& string){ add(string, string); return *this; }
+
+template<int stacksize>
+HLStringX<stacksize>& HLStringX<stacksize>::operator+=(const VString& string){ add(string, string); return *this; }
+
+template<int stacksize>
+HLStringX<stacksize>& HLStringX<stacksize>::operator+(const char* string){ if(string) this->Add((unsigned char*)string, strlen(string)); return *this; }
+
+template<int stacksize>
+HLStringX<stacksize>& HLStringX<stacksize>::operator+(HLStringX& string){
+	for(int i = 0; i < string.Blocks(); i++){
+		int sz;
+		unsigned char * c = string.GetBlock(i, sz);
+		this->Add(c, sz);
+	}
+	
+	return *this;
+}
+//HLString2& HLString2::operator+(LString& lst){ add(lst.operator MString(), lst.size()); return *this; }
+
+typedef HLStringX<S4K> HLString;
+typedef HLStringX<1> HLString0;
+
+/*
+
 ///////// HLString
 class HLString: public LString {
 public:
@@ -115,13 +243,14 @@ public:
 	VString addnfr(VString line){
 		return VString(&el(addnf(line, line)), line);
 	}
+
 };
 
 HLString& HLString::operator+(const MString& string){ add(string, string); return *this; }
 HLString& HLString::operator+(const VString& string){ add(string, string); return *this; }
 HLString& HLString::operator+(const char* string){ if(string) add(string, strlen(string)); return *this; }
 HLString& HLString::operator+(LString& lst){ add(lst.operator MString(), lst.size()); return *this; }
-
+*/
 
 // Includes
 #include "crossplatform/filefunc.cpp"
@@ -432,6 +561,35 @@ void MemoryControlPrint(HLString &ls){
 	}
 	return ;
 }*/
+
+void msvcore_memcon_print(){
+	print("\r\n" "Memory Control:" "\r\n");
+	VString s("                                                                                      ");
+	int m = 0;
+
+	for(int i = 0; i < msvcore_memcon_data_sz; i++)
+		if(m < strlen(msvcore_memcon_data[i].name))
+			m = strlen(msvcore_memcon_data[i].name);
+
+	for(int i = 0; i < msvcore_memcon_data_sz; i++){
+		print(HLString() + msvcore_memcon_data[i].name + s.str(0, m - strlen(msvcore_memcon_data[i].name) + 1)
+			+ s.str(0, 10 - dsize(msvcore_memcon_data[i].mcount)) + msvcore_memcon_data[i].mcount
+			+ s.str(0, 10 - dsize(msvcore_memcon_data[i].ucount)) + msvcore_memcon_data[i].ucount
+			+ s.str(0, 10 - dsize(msvcore_memcon_data[i].fcount)) + msvcore_memcon_data[i].fcount
+			+ "\r\n");
+	}
+
+	print(HLString() + "All:" + s.str(0, m - 4 + 1)
+		+ s.str(0, 10 - dsize(msvcore_memcon_data[0].amcount)) + msvcore_memcon_data[0].amcount
+		+ s.str(0, 10 - dsize(msvcore_memcon_data[0].aucount)) + msvcore_memcon_data[0].aucount
+		+ s.str(0, 10 - dsize(msvcore_memcon_data[0].afcount)) + msvcore_memcon_data[0].afcount
+		+ "\r\n");
+
+	print(HLString() + "Malloc: " + msvcore_memcon_malloc_count + ", use: " + (msvcore_memcon_malloc_count - msvcore_memcon_free_count) + ", free: " + msvcore_memcon_free_count + "\r\n");
+
+	return ;
+}
+
 
 /// BAD BAD CODE
 int rtms(unsigned char *line, unsigned int sz, unsigned char *fr, unsigned int frsz, int &pos, bool res){ //read to more sumbol

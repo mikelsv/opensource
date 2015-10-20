@@ -146,18 +146,20 @@ public:
 	//void* tox();
 };
 
+class TString;
+
 
 
 // Int library
 //int stoi(char *line, unsigned int size=0);
-MString itos(int64 val, int radix=10, int null=1);
-MString itob(unsigned int val, int null=0);
-MString dtos(double val, int ml=5);
+TString itos(int64 val, int radix=10, int null=1);
+TString itob(unsigned int val, int null=0);
+TString dtos(double val, int ml=5);
 //MString htob(VString line);
-MString gditos(double i);
+TString gditos(double i);
 
-MString htob(VString line);
-MString btoh(VString line);
+TString htob(VString line);
+TString btoh(VString line);
 
 // unicode string short
 // short to char
@@ -186,8 +188,8 @@ MString ctoutf(const VString ln);
 MString ctodos(const VString ln);
 
 // Replace
-MString Replace(VString line, VString fr, VString to, unsigned int cnt=0);
-MString sons(MString line);
+TString Replace(VString line, VString fr, VString to, unsigned int cnt=0);
+//MString sons(MString line);
 
 // ILink
 struct DUMS{ MString key, val; };
@@ -263,9 +265,9 @@ public:
 };
 
 // MD5 - 6.12.05 1.0.0 MSVSPL Specila Library
-MString md5(VString line);
-MString md5h(VString line);
-MString md5b(VString line);
+TString md5(VString line);
+TString md5h(VString line);
+//TString md5b(VString line);
 
 #include "crypto/md5.h"
 #include "crypto/rmd160.h"
@@ -308,6 +310,7 @@ public:
 	void Finish(int t); // finish for type
 	VString Get();
     VString GetH();
+	VString FastH(int type, VString line);
 };
 
 class MD5Code{
@@ -460,9 +463,98 @@ public:
 	VString operator[](VString line);
 	VString Get(VString line);
 	VString Set(VString line, VString set);
+	VString Set(VString line, int64 set);
 	VString GetLine(unsigned int &p);
 	VString GetData();
 	unsigned int GetLine(VString &line, unsigned int p);
 	void Clear();
 	void ClearData();
 };
+
+
+
+
+#define MSTRING_TEMPALTE_ADD5										\
+	sz = l1.size() + l2.size() + l3.size() + l4.size() + l5.size(); \
+	if(!sz){ StringDel(data); data = 0; return *this; }				\
+	unsigned char *odata = data;									\
+	StringNew(0);													\
+	unsigned char *ndata = data;									\
+	memcpy(ndata, l1, l1); ndata += l1.size();						\
+	memcpy(ndata, l2, l2); ndata += l2.size();						\
+	memcpy(ndata, l3, l3); ndata += l3.size();						\
+	memcpy(ndata, l4, l4); ndata += l4.size();						\
+	memcpy(ndata, l5, l5); ndata += l5.size();						\
+	*ndata = 0;														\
+	StringDel(odata);												\
+	return *this;
+
+#define MSTRING_TEMPALTE_ADD9										\
+	sz = l1.size() + l2.size() + l3.size() + l4.size() + l5.size() + l6.size() + l7.size() + l8.size() + l9.size(); \
+	if(!sz){ StringDel(data); data = 0; return *this; }				\
+	unsigned char *odata = data;									\
+	StringNew(0);													\
+	unsigned char *ndata = data;									\
+	memcpy(ndata, l1, l1); ndata += l1.size();						\
+	memcpy(ndata, l2, l2); ndata += l2.size();						\
+	memcpy(ndata, l3, l3); ndata += l3.size();						\
+	memcpy(ndata, l4, l4); ndata += l4.size();						\
+	memcpy(ndata, l5, l5); ndata += l5.size();						\
+	memcpy(ndata, l6, l6); ndata += l6.size();						\
+	memcpy(ndata, l7, l7); ndata += l7.size();						\
+	memcpy(ndata, l8, l8); ndata += l8.size();						\
+	memcpy(ndata, l9, l9); ndata += l9.size();						\
+	*ndata = 0;														\
+	StringDel(odata);												\
+	return *this;
+
+#define MSTRING_TEMPALTE_ADDR9										\
+	sz = l1.size() + l2.size() + l3.size() + l4.size() + l5.size() + l6.size() + l7.size() + l8.size() + l9.size(); \
+	if(!sz){ StringDel(data); data = 0; return *this; }				\
+	unsigned char *odata = data;									\
+	StringNew(0);													\
+	unsigned char *ndata = data;									\
+	memcpy(ndata, l1, l1); l1.data = ndata; ndata += l1.size();		\
+	memcpy(ndata, l2, l2); l2.data = ndata; ndata += l2.size();		\
+	memcpy(ndata, l3, l3); l3.data = ndata; ndata += l3.size();		\
+	memcpy(ndata, l4, l4); l4.data = ndata; ndata += l4.size();		\
+	memcpy(ndata, l5, l5); l5.data = ndata; ndata += l5.size();		\
+	memcpy(ndata, l6, l6); l6.data = ndata; ndata += l6.size();		\
+	memcpy(ndata, l7, l7); l7.data = ndata; ndata += l7.size();		\
+	memcpy(ndata, l8, l8); l8.data = ndata; ndata += l8.size();		\
+	memcpy(ndata, l9, l9); l9.data = ndata; ndata += l9.size();		\
+	*ndata = 0;														\
+	StringDel(odata);												\
+	return *this;
+
+#define MSTRING_TEMPALTE_ADD19										\
+	sz = l1.size() + l2.size() + l3.size() + l4.size() + l5.size() + l6.size() + l7.size() + l8.size() + l9.size()	\
+		+ l10.size() + l11.size() + l12.size() + l13.size() + l14.size() + l15.size() + l16.size() + l17.size()		\
+		+ l18.size() + l19.size();									\
+	if(!sz){ StringDel(data); data = 0; return *this; }				\
+	unsigned char *odata = data;									\
+	StringNew(0);													\
+	unsigned char *ndata = data;									\
+	memcpy(ndata, l1, l1); ndata += l1.size();						\
+	memcpy(ndata, l2, l2); ndata += l2.size();						\
+	memcpy(ndata, l3, l3); ndata += l3.size();						\
+	memcpy(ndata, l4, l4); ndata += l4.size();						\
+	memcpy(ndata, l5, l5); ndata += l5.size();						\
+	memcpy(ndata, l6, l6); ndata += l6.size();						\
+	memcpy(ndata, l7, l7); ndata += l7.size();						\
+	memcpy(ndata, l8, l8); ndata += l8.size();						\
+	memcpy(ndata, l9, l9); ndata += l9.size();						\
+	memcpy(ndata, l10, l10); ndata += l10.size();					\
+	memcpy(ndata, l11, l11); ndata += l11.size();					\
+	memcpy(ndata, l12, l12); ndata += l12.size();					\
+	memcpy(ndata, l13, l13); ndata += l13.size();					\
+	memcpy(ndata, l14, l14); ndata += l14.size();					\
+	memcpy(ndata, l15, l15); ndata += l15.size();					\
+	memcpy(ndata, l16, l16); ndata += l16.size();					\
+	memcpy(ndata, l17, l17); ndata += l17.size();					\
+	memcpy(ndata, l18, l18); ndata += l18.size();					\
+	memcpy(ndata, l19, l19); ndata += l19.size();					\
+	*ndata = 0;														\
+	StringDel(odata);												\
+	return *this;
+

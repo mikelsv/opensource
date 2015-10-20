@@ -39,7 +39,7 @@ public:
 
 	//VString itos(int val, int radix=10, int null=0);
 	// n 100%		  // re create on 10 and any radix and add tos
-	VString itos(int val, int radix=10, int null=0){
+/*	VString itos(int val, int radix=10, int null=0){
 		 if(null<1) null=1; int mins=val, bls=0;
 		if (mins<0) {mins=mins*-1; bls++;}
 		while(mins>0){ mins/=radix; bls++; }
@@ -67,6 +67,13 @@ public:
 		//else if (tmp>=10 && tmp<=33) *(char*)(ret.rchar()+bls)=char(55+tmp);
 		val/=radix; bls--;
 		} return ret;
+	}
+*/
+
+	VString itos(int64 val, int radix = 10, int null = 0){
+		Reserv(prmf_itos(0, 0, val, radix, null));
+		prmf_itos(ret, ret, val, radix, null);
+		return ret;
 	}
 
 	//VString dtos(double val, int ml=0, int radix=10, int null=1);
@@ -338,9 +345,9 @@ public:
 				else if(*ln=='h'){ it.itos64(*l, 16, p1); ls+=it; }
 				else if(*ln=='f'){ if(!p2) p1=99; it.dtos(*l, p1); ls+=it; }
 				else if(*ln=='s'){ VString v=*l; ls+=v; }
-				else if(ln+3<to && *ln=='i' && *(ln+1)=='p' && *(ln+2)=='!'){ ln+=2; it.ipitos(*l); ls+=it; }
-				else if(ln+4<to && *ln=='i' && *(ln+1)=='p' && *(ln+2)=='6' && *(ln+3)=='!'){ ln+=3; it.ip6itos(*l); ls+=it; }
-				else if(ln+4<to && *ln=='m' && *(ln+1)=='a' && *(ln+2)=='c' && *(ln+3)=='!'){ ln+=3; ls+=17; }
+				else if(ln+3<=to && *ln=='i' && *(ln+1)=='p' && *(ln+2)=='!'){ ln+=2; it.ipitos(*l); ls+=it; }
+				else if(ln+4<=to && *ln=='i' && *(ln+1)=='p' && *(ln+2)=='6' && *(ln+3)=='!'){ ln+=3; it.ip6itos(*l); ls+=it; }
+				else if(ln+4<=to && *ln=='m' && *(ln+1)=='a' && *(ln+2)=='c' && *(ln+3)=='!'){ ln+=3; ls+=17; }
 				else{
 					ls ++;
 					continue;
@@ -372,9 +379,9 @@ public:
 				else if(*ln=='f'){ if(!p2) p1=99; it.dtos(*l, p1); memcpy(ls, it.ret, it); ls+=it; }
 				else if(*ln=='s'){ VString v=*l; memcpy(ls, v, v); ls+=v; }
 				//else if(cmp((char*)ln, "ip!", 3)){ ln+=2; it.ipitos(*l); memcpy(ls, it.ret, it); ls+=it; }
-				else if(ln+3<to && *ln=='i' && *(ln+1)=='p' && *(ln+2)=='!'){ ln+=2; it.ipitos(*l); memcpy(ls, it.ret, it); ls+=it; }
-				else if(ln+4<to && *ln=='i' && *(ln+1)=='p' && *(ln+2)=='6' && *(ln+3)=='!'){ ln+=3; it.ip6itos(*l); memcpy(ls, it.ret, it); ls+=it; }
-				else if(ln+4<to && *ln=='m' && *(ln+1)=='a' && *(ln+2)=='c' && *(ln+3)=='!'){ ln+=3; it.macitos(*l); memcpy(ls, it.ret, it); ls+=17; }
+				else if(ln+3<=to && *ln=='i' && *(ln+1)=='p' && *(ln+2)=='!'){ ln+=2; it.ipitos(*l); memcpy(ls, it.ret, it); ls+=it; }
+				else if(ln+4<=to && *ln=='i' && *(ln+1)=='p' && *(ln+2)=='6' && *(ln+3)=='!'){ ln+=3; it.ip6itos(*l); memcpy(ls, it.ret, it); ls+=it; }
+				else if(ln+4<=to && *ln=='m' && *(ln+1)=='a' && *(ln+2)=='c' && *(ln+3)=='!'){ ln+=3; it.macitos(*l); memcpy(ls, it.ret, it); ls+=17; }
 				//else if(*ln=='i'){ it.itos64(*l, 10, p1); memcpy(ls, it.ret, it); ls+=it; }
 				else{
 					*ls = '%';

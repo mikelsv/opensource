@@ -62,7 +62,7 @@ double stod(char*line, unsigned int size, int radix){
 	double ret = stoi64(line, ln - line, radix);
 	
 	if(ln + 1 < to){
-		double pw = pow((double)radix, to - ln - 1);
+		double pw = pow((double)radix, (int)(to - ln - 1));
 		double dret = stoi64(ln + 1, to - ln - 1, radix);
 		ret = ret + dret / pw;
 	}
@@ -95,27 +95,27 @@ return ret;
 }
 
 
-MString itos(int64 val, int radix, int null){
-	MString ret; ret.Reserv(prmf_itos(0, 0, val, radix, null)); prmf_itos(ret, ret, val, radix, null); return ret;
+TString itos(int64 val, int radix, int null){
+	TString ret; ret.Reserv(prmf_itos(0, 0, val, radix, null)); prmf_itos(ret, ret, val, radix, null); return ret;
 }
 
-MString htob(VString line){
-	MString ret; ret.Reserv(prmf_htob(0, 0, line, line)); prmf_htob(ret, ret, line, line); return ret;
+TString htob(VString line){
+	TString ret; ret.Reserv(prmf_htob(0, 0, line, line)); prmf_htob(ret, ret, line, line); return ret;
 }
 
-MString btoh(VString line){
-	MString ret; ret.Reserv(prmf_btoh(0, 0, line, line)); prmf_btoh(ret, ret, line, line); return ret;
+TString btoh(VString line){
+	TString ret; ret.Reserv(prmf_btoh(0, 0, line, line)); prmf_btoh(ret, ret, line, line); return ret;
 }
 
-MString itob(unsigned int val, int null){ // recreate it
-	MString ret;
+TString itob(unsigned int val, int null){ // recreate it
+	TString ret;
 	int stp=1, tmp;
 
 	while(val>0){
 		tmp=val%256; val/=256;
-		ret+=MString(tmp);	//pows -1
+		ret+=TString(tmp);	//pows -1
 	}
-	if (null>0 && (unsigned int)null>ret.size()){ MString s; s.RClean(null-ret.size(),0); ret+=s; }
+	if (null>0 && (unsigned int)null>ret.size()){ TString s; s.RClean(null-ret.size(),0); ret+=s; }
 	return ret;
 }
 
@@ -458,7 +458,7 @@ return 8;
 }
 
 int dsize(unsigned int val){
-if(!val) return 0;
+//if(!val) return 0;
 if(val<10) return 1;
 if(val<100) return 2;
 if(val<1000) return 3;
@@ -481,7 +481,7 @@ return 13;
 #include "../crypto/sha1.c"
 #include "../crypto/sha224-256.c"
 
-MString md5(VString line){
+TString md5(VString line){
 	md5_state_t state;
 	MString ret;
 	ret.Reserv(16);
@@ -493,9 +493,9 @@ MString md5(VString line){
 	return ret;
 }
 		   
-MString md5h(VString line){
+TString md5h(VString line){
 	md5_state_t state;
-	MString ret;
+	TString ret;
 	ret.Reserv(32);
 
 	md5_init(&state);
@@ -538,7 +538,6 @@ MString md5h(VString line){
 		if(type&MHASHT_RMD160) RMD160Update(&rmd, line, line.size());
 		if(type&MHASHT_SHA1) SHA1Input(&sha1, line, line.size());
 		if(type&MHASHT_SHA256) SHA256Input(&sha256, line, line.size());
-	
 	}
 
 	void MHash::Finish(int t){
@@ -557,6 +556,14 @@ MString md5h(VString line){
 
 	VString MHash::Get(){ return ret; }
 	VString MHash::GetH(){ return reth; }
+
+	VString MHash::FastH(int type, VString line){
+		Type(type);
+		Add(line);
+		Finish();
+		return GetH();
+	}
+
 //};
 
 //class MD5Code{
@@ -632,15 +639,15 @@ for (line; ln<line; line--){ if(lnt!=rts_lntype(*line)) return 1;} return 0;
 }
 
 
-MString Replace(VString line, VString fr, VString to, unsigned int cnt){
-	MString ret;
+TString Replace(VString line, VString fr, VString to, unsigned int cnt){
+	TString ret;
 	int s=prmf_replace(0, 0, line, line, fr, fr, to, to, cnt);
 	ret.Reserv(s); s=prmf_replace(ret, ret, line, line, fr, fr, to, to, cnt);
 	return ret;
 }
 
-MString dtos(double val, int ml){
-MString ret=itos(val);
+TString dtos(double val, int ml){
+TString ret=itos(val);
 val=val-int64(val);
 if(val<0) val*=-1;
 if(!val) return ret;
@@ -655,13 +662,18 @@ ml--;
 return ret;
 }
 
-MString gditos(double i){
-int rt=0;
-if(i>1000) {rt=1; i/=1024; 
-if(i>1000) {rt=2; i/=1024; 
-if(i>1000) {rt=3; i/=1024; 
-if(i>1000) {rt=4; i/=1024; }}}}
-return dtos(i, 2)+ (rt ? (rt==1 ? "Kb" : (rt==2 ? "Mb" : ( rt==3 ? "Gb" : "Tb" )) ) : "b");
+TString gditos(double i){
+	TString t;
+	int rt=0;
+	if(i>1000){ rt=1; i/=1024; 
+		if(i>1000){ rt=2; i/=1024; 
+			if(i>1000){ rt=3; i/=1024; 
+				if(i>1000){ rt=4; i/=1024; }
+			}
+		}
+	}
+
+	return t.Add(dtos(i, 2), (rt ? (rt==1 ? "Kb" : (rt==2 ? "Mb" : ( rt==3 ? "Gb" : "Tb" )) ) : "b"));
 }
 
 int64 gdstoi(const VString line){

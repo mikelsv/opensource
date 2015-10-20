@@ -62,7 +62,7 @@ public:
 
 			if(d && d!=fre && ltime+30<time()){
 				datasz--; allsz-=d->a;			
-				data.OMDel(d); free(d);			
+				data.OMDel(d); free(d);
 				ltime=time();
 			}
 
@@ -85,7 +85,7 @@ public:
 		// free to lists
 		if(!fre){ globalerror("OMATRIX2 !fre"); return 0; }
 		int num=fre->getfree(); usesz++; if(num<0 || num>=newsz){ globalerror("OMATRIX2 num>maxsz"); return 0; }
-		PROCSTRUCTCN *el=((PROCSTRUCTCN*)(fre+1))+num;
+		PROCSTRUCTCN *el= ((PROCSTRUCTCN*)(fre->data)) + num;
 		fre->u++; fre->set(num, 1);
 		new(el)PROCSTRUCTCN;
 	
@@ -134,7 +134,7 @@ public:
 		UGLOCK(this);
 		if(!el){
 			if(!data._a) return 0;
-			el=((PROCSTRUCTCN*)(data._a+1));
+			el=((PROCSTRUCTCN*)(data._a->data));
 		}
 		else
 			el++;
@@ -147,13 +147,13 @@ public:
 		num=nw->getn(el);
 		for(num; num<nw->a; num++){
 			if(nw->get(num)){
-				el=((PROCSTRUCTCN*)(nw+1))+num;
+				el=((PROCSTRUCTCN*)(nw->data))+num;
 				return el;
 			}
 		}
 
 		if(nw->_n)
-			return Next(((PROCSTRUCTCN*)(data._a+1)));
+			return Next(((PROCSTRUCTCN*)(data._a->data)));
 
 		return 0;
 	}

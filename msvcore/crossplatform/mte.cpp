@@ -195,7 +195,9 @@ operator MString() const{
 	case DATATYPE_INT64: return itos(*(int64*)&data); break;
 	case DATATYPE_FLOAT: return dtos(*(float*)&data); break;
 	case DATATYPE_DOUBLE: return dtos(*(double*)&data); break;
-	case DATATYPE_RGB: return itos((*(RGBQUAD*)&data).rgbRed, 16)+ itos((*(RGBQUAD*)&data).rgbGreen, 16)+itos((*(RGBQUAD*)&data).rgbBlue, 16); break;
+	case DATATYPE_RGB:{
+		TString t;
+		return t.Add(itos((*(RGBQUAD*)&data).rgbRed, 16), itos((*(RGBQUAD*)&data).rgbGreen, 16), itos((*(RGBQUAD*)&data).rgbBlue, 16)); break; }
 	}
 return "";
 }
@@ -1078,6 +1080,8 @@ class MTEVA{ public:
 	MTEVA(unsigned int v){ i=v; sz=4; tp=MTEVAT_INT; }
 	MTEVA(int v){ i=v; sz=4; tp=MTEVAT_INT; }
 	MTEVA(int64 v){ i=v; sz=8; tp=MTEVAT_INT; }
+	MTEVA(uint64 v){ i=v; sz=8; tp=MTEVAT_INT; }
+	MTEVA(unsigned long v){ i=v; sz=sizeof(unsigned long); tp=MTEVAT_INT; }
 	MTEVA(float v){ f=v; sz=4; tp=MTEVAT_FLOAT; }
 	MTEVA(double v){ f=v; sz=8; tp=MTEVAT_FLOAT; }
 	//MTEVA(VString s){ v=s; sz=8; tp=MTEVAT_STR; }

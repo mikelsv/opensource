@@ -42,11 +42,15 @@ _test();
 		if(ns>s/2 && s<=S32K) s*=2;
 _test();		
 		SendDataLD *d=(SendDataLD*)malloc(s); //mcnew(s);
-		if(e){ e->n=d; e=d; }
-		else { a=d; e=d; }
+		d->asz = s - sizeof(SendDataLD);
 		d->n=0;
-		d->asz=s-sizeof(SendDataLD); d->usz=0; d->ssz=0;
-		asz+=d->asz;
+		d->usz=0;
+		d->ssz=0;
+
+		if(e){ e->n=d; e=d; }
+		else { a=d; e=d; }		
+		
+		asz += d->asz;
 _test();
 		//print("New ", itos(s), "\r\n");
 		return d;
@@ -64,6 +68,8 @@ _test();
 	}
 
 	void _test(){
+		// return ;
+
 		SendDataLD *d=this->a;
 		int a=0, u=0, s=0;
 

@@ -238,7 +238,8 @@ int _mdeleteallx(MMatrixX* root, MMatrixXD*cls)
 int _change(MMatrixR* t, MMatrixD*ind, MMatrixD*tind)
 {
 	if(!ind || !tind)
-	{int x=56;}
+		return 0;
+
 	MMatrixD*pd=ind->_p;
 	if (t->_a==ind) t->_a=tind;
 	else ind->_p->_n=tind;

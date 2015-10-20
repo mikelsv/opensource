@@ -622,7 +622,7 @@ return bs;
 
 #ifdef WIN32
 #define PRTHREAD_COND_SIGNAL 0
-#define PRTHREAD_COND_BROADCAST 1
+//#define PRTHREAD_COND_BROADCAST 1
 
 typedef CRITICAL_SECTION pthread_mutex_t;
 typedef CONDITION_VARIABLE pthread_cond_t;
@@ -634,6 +634,23 @@ void pthread_mutex_lock(pthread_mutex_t *shared_mutex){
 void pthread_mutex_unlock(pthread_mutex_t *shared_mutex){
 	LeaveCriticalSection(shared_mutex);
 }
+
+void WINAPI pthread_cond_init_winxp(pthread_cond_t *cond){
+	cond->Ptr = CreateEvent(NULL, FALSE, FALSE, NULL);
+}
+
+void WINAPI pthread_cond_wait_winxp(pthread_cond_t *cond, pthread_mutex_t *mutex, DWORD tm){
+	pthread_mutex_unlock(mutex);
+	WaitForMultipleObjects(1, (HANDLE*)&cond->Ptr, FALSE, tm);
+	pthread_mutex_lock(mutex);
+}
+
+void WINAPI pthread_cond_signal_winxp(pthread_cond_t *cond){
+  // Try to release one waiting thread.
+  //PulseEvent(cv->events_[PRTHREAD_COND_SIGNAL]);
+	SetEvent(cond->Ptr);
+}
+
 
 /*  For Windows XP
 typedef struct{
@@ -675,17 +692,48 @@ void pthread_cond_signal(pthread_cond_t *cv){
 	SetEvent(cv->events_[PRTHREAD_COND_SIGNAL]);
 }*/
 
+typedef void (WINAPI *t_InitializeConditionVariable)(pthread_cond_t *external_cond);
+typedef void (WINAPI *t_SleepConditionVariable)(pthread_cond_t *external_cond, pthread_mutex_t *external_mutex, DWORD tm);
+typedef void (WINAPI *t_WakeConditionVariable)(pthread_cond_t *external_cond);
+
+t_InitializeConditionVariable f_InitializeConditionVariable = 0;
+t_SleepConditionVariable f_SleepConditionVariable = 0;
+t_WakeConditionVariable f_WakeConditionVariable = 0;
+
+
+class __UniqClassConditionVariable{
+
+public:
+	__UniqClassConditionVariable(){
+		HMODULE module = GetModuleHandle(MODUNICODE("kernel32"));
+
+		if(module){
+			f_InitializeConditionVariable = (t_InitializeConditionVariable)GetProcAddress(module, "InitializeConditionVariable");
+			f_SleepConditionVariable = (t_SleepConditionVariable)GetProcAddress(module, "SleepConditionVariableCS");
+			f_WakeConditionVariable = (t_WakeConditionVariable)GetProcAddress(module, "WakeConditionVariable");
+		}
+
+		if(!f_InitializeConditionVariable || !f_SleepConditionVariable || !f_WakeConditionVariable){
+			f_InitializeConditionVariable = pthread_cond_init_winxp;
+			f_SleepConditionVariable = pthread_cond_wait_winxp;
+			f_WakeConditionVariable = pthread_cond_signal_winxp;
+		}
+
+		return ;
+	}
+
+} __UniqClassConditionVariable;
+
 void pthread_cond_init(pthread_cond_t *external_cond, const void*){
-	InitializeConditionVariable(external_cond);
+	f_InitializeConditionVariable(external_cond);
 }
 
-void pthread_cond_wait (pthread_cond_t *external_cond, pthread_mutex_t *external_mutex){
-	SleepConditionVariableCS(external_cond, external_mutex, INFINITE);
+void pthread_cond_wait(pthread_cond_t *external_cond, pthread_mutex_t *external_mutex){
+	f_SleepConditionVariable(external_cond, external_mutex, INFINITE);
 }
-
 
 void pthread_cond_signal(pthread_cond_t *external_cond){
-	WakeConditionVariable(external_cond);
+	f_WakeConditionVariable(external_cond);
 }
 
 #endif

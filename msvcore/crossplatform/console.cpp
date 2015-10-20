@@ -786,7 +786,7 @@ if(rc){ memset(&ru.ru_utime, 0, sizeof(struct timeval)*2); }
 write(p_stdret[1], &ru.ru_utime, sizeof(struct timeval)*2);
 
 	close(p_stdin[0]); close(p_stdout[1]); close(p_stderr[1]); close(p_stdret[1]);
-    exit(0);
+    quick_exit(0); //exit(0);
 }
 
 	if(pid>0){ close(p_stdin[0]); close(p_stdout[1]); close(p_stderr[1]); close(p_stdret[1]); }
@@ -815,22 +815,32 @@ int Process(int &rc, HLString &hls, HLString &ehls, int tocon=1){
 		
 		if(FD_ISSET(p_stdout[0], &rfds)){// print("R ");
 			rbufi=read(p_stdout[0], buf, sizeof(buf));// if(rbufi<=0) break; // PPLRBUF
+
+			if(rbufi < 0)
+				rbufi = 0;
 			
-			if(tocon) print(VString(buf, rbufi));
+			if(tocon)
+				print(VString(buf, rbufi));
 			
 			if(tml){
 				pipe_timeline pt; pt.pos=hls.size();
 				timeb tm=alltime(); pt.tm=tm.time; pt.ml=tm.millitm; *tml+VString((char*)&pt, sizeof(pt));
 			}
 			
-			if(isoutbuffer) return rbufi;
-			else hls.add((char*)buf, rbufi);
+			if(isoutbuffer)
+				return rbufi;
+			else
+				hls.add((char*)buf, rbufi);
 			
-			if(rbufi>0) continue;
+			if(rbufi>0)
+				continue;
 		}
 
 		if(FD_ISSET(p_stderr[0], &rfds)){// print("RE ");
 			ebufi=read(p_stderr[0], &buf, sizeof(buf));// if(bufi<0) break;
+
+			if(ebufi < 0)
+				ebufi = 0;
 			
 			if(tocon) print(VString(buf, ebufi));
 			

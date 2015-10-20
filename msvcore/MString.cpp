@@ -1,10 +1,13 @@
 #include "msvdefine.h"
 #include "VString.h"
 #include "MString.h"
+#include "TString.h"
 #include "msvdefine_m.h"
 
+#include "TString.cpp"
+
 // + global function
-MString LoadFile(VString file);
+TString LoadFile(VString file);
 bool IsFile(VString file);
 unsigned int SaveFile(VString file, VString data);
 
@@ -25,11 +28,13 @@ unsigned int SaveFile(VString file, VString data);
 #include "crossplatform-confline.h"
 */
 
+
+
 // Class MString: public VString {
 // --------------------------------------------------- Constructor  Конструктор
 
-MString::MString(){ data=0; Init(); MSVMEMORYCONTROLC }
-MString::~MString(){ _deln(data); MSVMEMORYCONTROLD }
+MString::MString(){ data=0; Init(); } // MSVMEMORYCONTROLC
+MString::~MString(){ _deln(data); } // MSVMEMORYCONTROLD
 void MString::Init(){ _deln(data); sz=0; }
 
 // --------------------------------------------------- Create object  Создание обьекта
@@ -91,7 +96,6 @@ const MString& MString::operator+=(const VString& string){
 	if(odata) _del(odata);
 	return *this;
 }
-
 
 const MString& MString::operator+=(const char string){
 	int szo=sz; int szt=sizeof(string);
@@ -197,7 +201,7 @@ MString& MString::operator-=(MString& string){
 	_del(data);
 	sz=string.sz; data=string.data;
 	string.data=0; string.sz=0;
-return *this;
+	return *this;
 }
 
 //void MString::newsize(unsigned int s){ sz=s; return ; }

@@ -23,6 +23,16 @@ public:
 		return ;
 	}
 
+	~InitMySSL(){
+		ERR_free_strings();
+		EVP_cleanup();
+		ERR_remove_state(0);
+		sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
+		//sk_free(SSL_COMP_get_compression_methods());
+		//SSL_COMP_free_compression_methods();
+	}
+
+
 }InitMySSL;
 
 class MySSL{
@@ -108,7 +118,7 @@ public:
 
 
 
-void RSACreateKeys(MString &pub, MString &sec){
+void RSACreateKeys(TString &pub, TString &sec){
 	// generate keys
 	RSA *rsa = RSA_generate_key(2048, RSA_F4, NULL, NULL);
 	int sz;
@@ -138,7 +148,7 @@ void RSACreateKeys(MString &pub, MString &sec){
 }
 
 int RSASaveCreateKeys(VString pubf, VString secf){
-	MString pub, sec;
+	TString pub, sec;
 	int ret=1;
 
 	RSACreateKeys(pub, sec);
@@ -147,24 +157,24 @@ int RSASaveCreateKeys(VString pubf, VString secf){
 	return ret;
 }
 
-MString RSAOperation(int type, VString key, VString text){
+TString RSAOperation(int type, VString key, VString text){
 	if(!text)
-		return MString();
+		return TString();
 
-	MString ret;
+	TString ret;
 	RSA *rsa = RSA_new(), *r;
-	BIO *b=BIO_new_mem_buf(key, key);
-	int sz=0;
+	BIO *b = BIO_new_mem_buf(key, key);
+	int sz = 0;
 
 	if(type<2)
-		r=PEM_read_bio_RSA_PUBKEY(b, &rsa, 0, 0);
+		r = PEM_read_bio_RSA_PUBKEY(b, &rsa, 0, 0);
 	else
-		r=PEM_read_bio_RSAPrivateKey(b, &rsa, 0, 0);
+		r = PEM_read_bio_RSAPrivateKey(b, &rsa, 0, 0);
 
 	if(!r){
 		BIO_free(b);
 		RSA_free(rsa);
-		return MString();
+		return TString();
 	}
 	
 	switch(type){
@@ -204,25 +214,25 @@ MString RSAOperation(int type, VString key, VString text){
 	return ret;
 }
 
-MString RSAPublicEncode(VString key, VString text){
+TString RSAPublicEncode(VString key, VString text){
 	return RSAOperation(0, key, text);
 }
 
-MString RSAPublicDecode(VString key, VString text){
+TString RSAPublicDecode(VString key, VString text){
 	return RSAOperation(1, key, text);
 }
 
-MString RSAPrivateEncode(VString key, VString text){
+TString RSAPrivateEncode(VString key, VString text){
 	return RSAOperation(2, key, text);
 }
 
-MString RSAPrivateDecode(VString key, VString text){
+TString RSAPrivateDecode(VString key, VString text){
 	return RSAOperation(3, key, text);
 }
 
 
 void test_rsa(){
-	MString pub, sec, e, d;
+	TString pub, sec, e, d;
 	RSACreateKeys(pub, sec);
 //	e=RSAEncode(pub, "The test string for encrypt/decrypt");
 //	d=RSADecode(sec, e);
@@ -231,13 +241,13 @@ void test_rsa(){
 
 
 // AES
-MString AESEncode(VString line, VString ckey, VString ivec){
-	MString ret;
+TString AESEncode(VString line, VString ckey, VString ivec){
+	TString ret;
 	ret.Reserv(line.sz*2);
 	int retlen=0, retlenf=0;
 
 	if(!ckey || !ivec)
-		return MString();
+		return TString();
 
 	EVP_CIPHER_CTX ctx;
 	EVP_EncryptInit(&ctx, EVP_aes_128_cbc(), ckey, ivec);
@@ -248,25 +258,26 @@ MString AESEncode(VString line, VString ckey, VString ivec){
 	return ret;
 }
 
-MString AESDecode(VString line, VString ckey, VString ivec){
-	MString ret;
+TString AESDecode(VString line, VString ckey, VString ivec){
+	TString ret;
 	ret.Reserv(line.sz+16);
 	int retlen=0, retlenf=0;
 
 	if(!ckey || !ivec)
-		return MString();
+		return TString();
 
 	EVP_CIPHER_CTX ctx;
 	EVP_DecryptInit(&ctx, EVP_aes_128_cbc(), ckey, ivec);
 	EVP_DecryptUpdate(&ctx, ret, &retlen, line, line);
 	EVP_DecryptFinal(&ctx, ret.data+retlen, &retlenf);
+	EVP_CIPHER_CTX_cleanup(&ctx);
 
 	ret.Reserv(retlen+retlenf);
 	return ret;
 }
 
-MString SSLGetUniqLine(){
-	MString pub, sec;
+TString SSLGetUniqLine(){
+	TString pub, sec;
 	RSACreateKeys(pub, sec);
 	return RSAPublicEncode(pub, sec.str(32, 100));
 }
@@ -304,18 +315,18 @@ int ProgSecureInit(){
 }
 
 
-MString AESEncodeMyDataBlock(VString data, VString ckey, VString ivek){
-	MString ret;
+TString AESEncodeMyDataBlock(VString data, VString ckey, VString ivek){
+	TString ret;
 	
-	MString key=SSLGetUniqLine();
-	MString key2=SSLGetUniqLine();
+	TString key=SSLGetUniqLine();
+	TString key2=SSLGetUniqLine();
 
 	key+=VString(key2).str(0, 100);
 	return ret.Add(VString(key).str(0, 256), RSAPublicEncode(ckey, VString(key2).str(0, 100)), AESEncode(data, key, ivek));
 }
 
-MString AESDecodeMyDataBlock(VString data, VString ckey, VString ivek){
-	MString key=data.str(0, 256);
+TString AESDecodeMyDataBlock(VString data, VString ckey, VString ivek){
+	TString key=data.str(0, 256);
 	VString key2=data.str(256, 256);
 	VString line=data.str(512);
 
@@ -324,18 +335,18 @@ MString AESDecodeMyDataBlock(VString data, VString ckey, VString ivek){
 }
 
 
-MString TEncodeData(VString data){
-	MString ret;
+TString TEncodeData(VString data){
+	TString ret;
 	
-	MString key=SSLGetUniqLine();
-	MString key2=SSLGetUniqLine();
+	TString key=SSLGetUniqLine();
+	TString key2=SSLGetUniqLine();
 
 	key+=VString(key2).str(0, 100);
 	return ret.Add(VString(key).str(0, 256), RSAPublicEncode(AESDecode(_ssl_init_1, _ssl_init_0, _ssl_init_p), VString(key2).str(0, 100)), AESEncode(data, key, _ssl_init_1));
 }
 
-MString TDecodeData(VString data){
-	MString key=data.str(0, 256);
+TString TDecodeData(VString data){
+	TString key=data.str(0, 256);
 	VString key2=data.str(256, 256);
 	VString line=data.str(512);
 
@@ -379,7 +390,7 @@ MString DecodeDeflate(VString data){
 	return MString(rbuf, zs.total_out);
 }*/
 
-int OpenSSLCreateRSAPrivateKey(MString &r_key, int bits=2048){
+int OpenSSLCreateRSAPrivateKey(TString &r_key, int bits = 2048){
 	RSA * rsa;
 	rsa = RSA_generate_key(
 		bits,   /* number of bits for the key - 2048 is a sensible value */
@@ -406,7 +417,7 @@ int OpenSSLCreateRSAPrivateKey(MString &r_key, int bits=2048){
 	return sz;
 }
 
-int OpenSSLCreateCertificateRequest(VString r_key, MString &r_req, MString ca, MString co, MString cn){
+int OpenSSLCreateCertificateRequest(VString r_key, TString &r_req, VString ca, VString co, VString cn){
 	// http://stackoverflow.com/questions/256405/programmatically-create-x509-certificate-using-openssl
 	
 	int ret=0;
@@ -468,7 +479,7 @@ free_all:
 	return ret;
 }
 
-int OpenSSLCreateCACertificate(VString r_key, MString &r_req, MString ca, MString co, MString cn){
+int OpenSSLCreateCACertificate(VString r_key, TString &r_req, VString ca, VString co, VString cn){
 	// http://stackoverflow.com/questions/256405/programmatically-create-x509-certificate-using-openssl
 	// http://www.codepool.biz/security/how-to-use-openssl-to-sign-certificate.html
 	
@@ -588,7 +599,7 @@ int OpenSSLSignCertificateDoX509Sign(X509 *cert, EVP_PKEY *pkey, const EVP_MD *m
     return rv > 0 ? 1 : 0;
 }
 
-int OpenSSLSignCertificate(MString &r_cert, VString ca_cert, VString ca_key, VString r_req, int serial){
+int OpenSSLSignCertificate(TString &r_cert, VString ca_cert, VString ca_key, VString r_req, int serial){
 	int ret = 0, sz;
 	X509 * ca = NULL;
     X509_REQ * req = NULL;

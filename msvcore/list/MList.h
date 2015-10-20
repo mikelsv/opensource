@@ -9,7 +9,7 @@ public:
 	MListData *_p, *_n;
 	MListItem data;
 
-	int _vs()const{ return (char*)&data-(char*)this; }
+	int _vs() const { return (char*)&data-(char*)this; }
 };
 
 
@@ -28,7 +28,8 @@ public:
 
 	MListItem* New(MListItem *next=0){
 		if(!TLock::lock) return 0;
-		MListData<MListItem> *item=new MListData<MListItem>;
+		MListData<MListItem> *item = (MListData<MListItem>*) malloc(sizeof(MListData<MListItem>)); // new MListData<MListItem>;
+		new (item) MListData<MListItem>;
 		OMAddEx(item, (MListData<MListItem>*) next); sz++;
 		return &item->data;
 	}
@@ -37,6 +38,7 @@ public:
 	MListItem* NewEx(int strsize, MListItem *next=0){
 		if(!TLock::lock) return 0;
 		MListData<MListItem> *item=(MListData<MListItem>*) malloc(sizeof(MListData<MListItem>)+strsize-sizeof(MListItem)); //new MListDataSz<MListItem, strsize-sizeof(MListItem)>;
+		new (item) MListData<MListItem>;
 		OMAddEx(item, (MListData<MListItem>*) next); sz++;
 		return &item->data;
 	}
@@ -54,14 +56,17 @@ public:
 		MListData<MListItem> *p=_a, *d=p;
 		while(p){
 			d=p; p=p->_n;
-			OMDel(d); delete d;
+			OMDel(d); d->~MListData<MListItem>(); free(d); /*delete d;*/
 		}
 		 _a=0; _e=0; sz=0;
 	}
 
 	MListItem* Del(MListItem *item){
+		if(!item)
+			return 0;
+
 		UGLOCK(this);
-		MListData<MListItem> *i=0; i=(MListData<MListItem>*) (((char*)item)-i->_vs());
+		MListData<MListItem> *i = 0; i = (MListData<MListItem>*) (((char*)item)-i->_vs());
 
 		MListData<MListItem> *p=_a;
 		while(p){
@@ -71,7 +76,7 @@ public:
 				else
 					item=0;
 
-				OMDel(p); delete p; sz--;
+				OMDel(p); p->~MListData<MListItem>(); free(p); /*delete p;*/ sz--;
 				return item;
 			}
 			p=p->_n;
@@ -86,9 +91,13 @@ public:
 	}
 
 	MListItem* Next(MListItem*item){
-		if(!TLock::lock) return 0;
-		if(!item) return First();
-		MListData<MListItem> *p=0; p=(MListData<MListItem>*) (((char*)item)-p->_vs());
+		if(!TLock::lock)
+			return 0;
+
+		if(!item)
+			return First();
+
+		MListData<MListItem> *p = 0; p = (MListData<MListItem>*) (((char*)item)-p->_vs());
 
 		if(!p || !p->_n) return 0;
 		return &(p)->_n->data;

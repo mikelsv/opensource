@@ -157,21 +157,44 @@ public:
 	//}
 
 	int COTS(LPVOID lp=0){
-		MSVCOTD*cot=new MSVCOTD;
-		cot->cot=this; cot->lp=lp;
+		MSVCOTD *cot; // new MSVCOTD;
+		msvnew(cot, MSVCOTD);
+		cot->cot = this; cot->lp=lp;
 		StopCot(); cot->cot->cotuse=1;
-		StartThread(MSVCOT_RunCot, cot, &cottid, 0, 0, 0);
+		StartThread(::MSVCOT_RunCot, cot, &cottid, 0, 0, 0);
 	return 1;
+	}
+
+
+public:
+	// run in class for memory control, dont use this functions
+	MSVCOT(unsigned short u){ cottid=0; }
+
+	DWORD MSVCOT_RunCot(LPVOID lp){
+		MSVCOTD *cot = (MSVCOTD*)lp;
+		cot->cot->COT(cot->lp);
+		cot->cot->cottid = 0;
+		//delete cot;
+		msvdelete(cot, MSVCOTD);
+		return 0;
 	}
 
 };
 
+unsigned short MSVCOTFORMEMORYCONTROL_US;
+MSVCOT MSVCOTFORMEMORYCONTROL(MSVCOTFORMEMORYCONTROL_US);
+
 
 DWORD MSVCOT_RunCot(LPVOID lp){
-	MSVCOTD*cot=(MSVCOTD*)lp;
-	cot->cot->COT(cot->lp); cot->cot->cottid=0;
-	delete cot; return 0;
+	return MSVCOTFORMEMORYCONTROL.MSVCOT_RunCot(lp);
 }
+
+
+//DWORD MSVCOT_RunCot(LPVOID lp){
+//	MSVCOTD*cot=(MSVCOTD*)lp;
+//	cot->cot->COT(cot->lp); cot->cot->cottid=0;
+//	delete cot; return 0;
+//}
 
 
 // Multi COT
@@ -206,17 +229,32 @@ public:
 	//}
 
 	int MCOTS(LPVOID lp=0){
-		MSVMCOTD*cot=new MSVMCOTD;
-		cot->cot=this; cot->lp=lp;
-		StartThread(MSVMCOT_RunCot, cot, &cottid, 0, 0, 0);
-	return 1;
+		MSVMCOTD *cot; // = new MSVMCOTD;
+		msvnew(cot, MSVMCOTD);
+		cot->cot = this; cot->lp = lp;
+		StartThread(::MSVMCOT_RunCot, cot, &cottid, 0, 0, 0);
+		return 1;
+	}
+
+public:
+	// run in class for memory control, dont use this functions
+	MSVMCOT(unsigned short u){ cottid=0; }
+
+	DWORD MSVMCOT_RunCot(LPVOID lp){
+		MSVMCOTD *cot = (MSVMCOTD*)lp;
+		cot->cot->MCOT(cot->lp);
+		cot->cot->cottid = 0;
+		//delete cot;
+		msvdelete(cot, MSVMCOTD);
+		return 0;
 	}
 
 };
 
+unsigned short MSVMCOTFORMEMORYCONTROL_US;
+MSVMCOT MSVMCOTFORMEMORYCONTROL(MSVMCOTFORMEMORYCONTROL_US);
+
 
 DWORD MSVMCOT_RunCot(LPVOID lp){
-	MSVMCOTD*cot=(MSVMCOTD*)lp;
-	cot->cot->MCOT(cot->lp); cot->cot->cottid=0;
-	delete cot; return 0;
+	return MSVMCOTFORMEMORYCONTROL.MSVMCOT_RunCot(lp);
 }

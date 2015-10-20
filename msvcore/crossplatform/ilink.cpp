@@ -218,8 +218,10 @@ return ;
 void ILink::AnalysIQuest(const VString &_iquest){
 	char *ln=_iquest, *lln=ln, *to=_iquest.end(); if(!ln){ args=0; return ; }
 	char *cm=ln; int i=0;
+	ln ++;
+	
 	for(ln; ln<=to; ln++){
-		if(*ln=='&' || *ln==' ' || ln==to){  if(lln==ln){ continue; }
+		if(*ln=='&' || *ln==' ' || ln==to){//  if(lln==ln){ continue; }
 			//if(*cm=='='){ ilinkq[i].key.set(lln, cm-lln); ilinkq[i].val.set(cm+1, ln-cm-1); }
 			//else { ilinkq[i].key.set(lln, ln-lln); ilinkq[i].val.Empty(); }
 			lln=ln+1; i++; //cm=lln;

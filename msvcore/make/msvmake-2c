@@ -26,11 +26,11 @@ endif
 # Object Directory
 OBJECTDIR=bDebug/
 
-debug: MSVDFLAGS = -g
+debug: MSVDFLAGS = -g ${ADDFLAGS}
 debug: OBJECTDIR=bDebug/
 debug: all
 
-release: MSVDFLAGS = -O2
+release: MSVDFLAGS = -O2 ${ADDFLAGS}
 release: OBJECTDIR=bRelease/
 release: all
 

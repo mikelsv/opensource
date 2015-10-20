@@ -50,7 +50,7 @@ VString ConfLine::LoadData(VString fl, VString dt){
 	}
 
 	VString ConfLine::Set(VString line, VString set){
-		VString l=Get(line);
+		VString l = Get(line);
 		if(l.data){
 			data.Add(VString(data.data, l.data-data.data), (*(l.data-1)!=9 && *(l.data-1)!=32) ? " " : "", set, VString(l.endu(), data.endu()-l.endu()));
 		}else{
@@ -58,6 +58,14 @@ VString ConfLine::LoadData(VString fl, VString dt){
 		}
 		return l;
 	}
+
+	VString ConfLine::Set(VString line, int64 set){
+		unsigned char buf[128];
+		int s = prmf_itos(buf, 128, set);
+
+		return Set(line, VString(buf, s));
+	}
+
 
 	VString ConfLine::GetLine(unsigned int &p){ // if return p==0 then EOF.
 		unsigned char *ln=data.data+p, *lln=ln, *to=data.endu(); if(p>=data.sz){ p=0; return ""; }

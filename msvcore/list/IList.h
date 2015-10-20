@@ -4,7 +4,7 @@
 #define ILIST_OPT_CON	1
 #define ILIST_OPT_DES	2
 
-template<class Item, int opt=ILIST_OPT_CON|ILIST_OPT_DES>
+template<class Item, int opt = ILIST_OPT_CON|ILIST_OPT_DES>
 class IList{
 	// size & basesize
 	unsigned int allsize, basesize;
@@ -13,7 +13,7 @@ public:
 	Item *data;
 	unsigned int sz;
 
-	IList(int bs=1024){ data=0; sz=0; allsize=0; basesize=bs; }
+	IList(int bs = 1024){ data=0; sz=0; allsize=0; basesize=bs; }
 	~IList(){ Clear(); }
 
 	bool Add(unsigned int add=S16K/sizeof(Item)){
@@ -43,6 +43,14 @@ public:
 	
 	inline Item& n(){ A(); return data[sz]; }
 	void Added(){ sz++; return ; }
+
+	Item& First(){
+		return data[0];
+	}
+
+	Item& End(){
+		return data[sz - 1];
+	}
 
 	void Clear(){ 
 		if(opt&ILIST_OPT_DES){

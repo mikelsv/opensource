@@ -10,12 +10,12 @@
 
 // --------------------------------------------------- Constructor  Конструктор
 
-VString::VString(){ data=0; sz=0; MSVMEMORYCONTROLC }
-VString::~VString(){ MSVMEMORYCONTROLD }
+VString::VString(){ data=0; sz=0; } // MSVMEMORYCONTROLC
+VString::~VString(){ } // MSVMEMORYCONTROLD
 
 // --------------------------------------------------- Create object  Создание обьекта
 
-VString::VString(const VString &line){ data=line; sz=line.sz;  }
+VString::VString(const VString &line){ data=line.data; sz=line.sz;  }
 VString::VString(const char *line){ data=(unsigned char*)line; if(line) sz=strlen((const char*)line); else sz=0; }
 VString::VString(const unsigned char *line){ data=(unsigned char*)line; if(line) sz=strlen((const char*)line); else sz=0; }
 VString::VString(const char *line, const unsigned int s){ data=(unsigned char*)line; if(s<S2G) sz=s; else sz=0; }
@@ -32,8 +32,8 @@ void VString::delq(){ if(sz>1 && *data=='"' && *(data+sz-1)=='"'){ data++; sz-=2
 
 bool VString::operator!()const{ if (sz>0) return 0; return 1; }
 VString::operator void*()const { return data; }
-VString::operator char*()const{ return (char*)data; }
-VString::operator unsigned char*()const { return data; }
+inline VString::operator char*()const{ return (char*)data; }
+inline VString::operator unsigned char*()const { return data; }
 VString::operator int()const{ if(data) return sz; return 0; }
 char VString::operator[](int index) const{ if(!sz || (unsigned int)index>=sz) return 0; return *(data+index); }
 char VString::operator[](unsigned int index) const{ if(!sz || index>=sz) return 0; return *(data+index); }

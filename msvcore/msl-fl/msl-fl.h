@@ -23,283 +23,23 @@ Versions msl_fl_version[]={
 TLock msl_value_test_loc;
 int msl_value_test_count;
 
-// Values
-class msl_value : public OMatrixT<msl_value>{
-public:
-	// prev, next, up first, up end
-	msl_value *_p, *_n;//, *_a, *_e;
-	MString key, val;
+#include "../msl/msl-value-def.h";
 
-	msl_value(){
-		_p=0; _n=0;
-#ifdef USEMSV_MSL_TEST
-		UGLOCK(msl_value_test_loc);
-		msl_value_test_count++;
+#ifdef USEMSV_MSL_FASTVAL
+#include "../msl/msl-val-fast.h"
+#else
+#define msl_fvalue msl_value
 #endif
-		MSVMEMORYCONTROLC
-	}
 
-	msl_value(msl_value &val){
-		Copy(val);
-	}
-
-	msl_value* New(){
-		msl_value *p=new msl_value;
-		if(!p) return 0;
-
-		OMAdd(p);
-		return p;
-	}
-
-	msl_value* New(msl_value *prev){
-		msl_value *p=new msl_value;
-		if(!p) return 0;
-
-		OMAddEx(prev, p);
-		return p;
-	}
-
-	msl_value* Find(VString key){
-		if(!this) return 0;
-		
-		for(msl_value*p=_a; p; p=p->_n){
-			if(p->key==key) return p;
-		}
-
-		return 0;
-	}
-
-	msl_value* FindByKey(VString key, VString val){
-		if(!this) return 0;
-		
-		for(msl_value*p=_a; p; p=p->_n){
-			if(p->Get(key)==val) return p;
-		}
-
-		return 0;
-	}
-
-	msl_value* Find(msl_value *key){
-		if(!this) return 0;
-		
-		for(msl_value*p=_a; p; p=p->_n){
-			if(p==key) return p;
-		}
-
-		return 0;
-	}
-
-	int Size(){
-		if(!this) return 0;
-		int sz=0;
-		
-		for(msl_value*p=_a; p; p=p->_n){
-			sz++;
-		}
-
-		return sz;
-	}
-
-	VString Get(VString key){
-		msl_value *p=Find(key);
-		if(p)
-			return p->val;
-		else
-			return VString();
-	}
-
-	msl_value* GetV(VString key){
-		msl_value *p=Find(key);
-		if(p)
-			return p;
-		else
-			return 0;
-	}
-
-	msl_value* GetV(msl_value *key){
-		msl_value *p=Find(key);
-		if(p)
-			return p;
-		else
-			return 0;
-	}
-
-	msl_value* GetVByPos(int pos){
-		msl_value *p=_a;
-		while(p){
-			if(!pos--) return p;
-			p=p->_n;
-		}
-		return 0;
-	}
-
-	msl_value* SGet(VString key){
-		int isnew;
-		return SGet(key, isnew);
-	}
-
-	msl_value* SGet(VString key, int &isnew){
-		msl_value *p=Find(key);
-		if(!p){
-			p=New(); isnew=1;
-			if(p){
-				p->key=key; p->val.sz=0xffffffff;
-			}
-		} else isnew=0;
-		return p;
-	}
-
-	msl_value* Set(VString key, VString val){
-		if(!this)
-			return 0;
-
-		msl_value *p=Find(key);
-		if(p){
-			p->val=val;
-		} else{
-			p=New();
-			if(p){
-				p->key=key; p->val=val;
-			}
-		}
-		return p;
-	}
-
-	msl_value* Set(VString key, msl_value *val){
-		if(!this)
-			return 0;
-
-		msl_value *p=Find(key);
-		if(p){
-			p->Copy(val);
-		} else{
-			p=New();
-			if(p){
-				p->key=key; p->Copy(val);
-			}
-		}
-		return p;
-	}
-
-	VString operator [](VString key){
-		if(!this)
-			return VString();
-
-		return Get(key);
-	}
-
-	// Add
-	void Add(VString key, msl_value *val){
-		msl_value *p=New();
-		p->key=key;
-		p->Copy(val);
-		//p->val=val; p->key=key;
-		return ;
-	}
-
-	void Add(VString key, VString val, msl_value *prev){
-		msl_value *p=New(prev);
-		p->key=key;
-		p->val=val;		
-		return ;
-	}
-
-	msl_value * Add(VString key, VString val){
-		msl_value *p=New();
-		p->val=val; p->key=key;
-		return p;
-	}
-
-	int Del(VString key){
-		msl_value *p=Find(key);
-		if(p){
-			OMDel(p);
-			delete p;
-			return 1;
-		}
-		return 0;
-	}
-
-	void Del(msl_value *p){
-		if(!p) return ;
-
-		// test in this line
-		OMDel(p); delete p;
-
-		return ;
-	}
-
-protected:
-
-	void operator=(msl_value &val){
-		Copy(val);
-	}
-	void operator=(msl_value *val){
-		if(val)
-			Copy(*val);
-	}
-
-public:
-
-	void Copy(msl_value *val){
-		if(val) Copy(*val);
-	}
-
-	void Move(msl_value *val){
-		if(val) Move(*val);
-	}
-
-	void Copy(msl_value &val){
-		Clear();
-		this->val=val.val;
-		
-		for(msl_value*p=val._a; p; p=p->_n){
-			Set(p->key, p->val)->Copy(p);
-		}
-		return ;
-	}
-
-	void Move(msl_value &val){
-		Clear();
-		_a=val._a; _e=val._e; val._a=0; val._e=0;
-		this->val-=val.val;		
-		return ;
-	}
-
-	int Memory(int &count){
-		int mem=sizeof(msl_value)+key.sz+val.sz; count++;
-
-		msl_value *p=_a;
-		while(p){
-			//mem+=sizeof(msl_value)+key+val;
-			//count++;
-			mem+=p->Memory(count);
-			p=p->_n;
-		}
-		return mem;
-	}
-
-	msl_value* n(){ return this ? _n : 0; }
-	msl_value* p(){ return this ? _p : 0; }
-	msl_value* a(){ return this ? _a : 0; }
-
-	void Clear(){
-		msl_value *p=_a, *d=p;
-		while(p){
-			d=p; p=p->_n; OMDel(d); delete d;
-		}
-		 _a=0; _e=0;
-	}
-
-	~msl_value(){
-		Clear();
-#ifdef USEMSV_MSL_TEST
-		UGLOCK(msl_value_test_loc);
-		msl_value_test_count--;
+#ifdef USEMSV_MSL_TMPVAL
+#include "../msl/msl-val-tmp.h"
+#else
+#define msl_tvalue msl_value
 #endif
-		MSVMEMORYCONTROLD
-	}
-};
+
+#define msl_value msl_value_template<msl_value_base>
+
+
 
 // Function Arguments
 class msl_fl_farg{
@@ -371,8 +111,14 @@ public:
 
 	void Clear(){
 		for(int i=0; i<usz; i++){
-			args[i].val.Clear();
+			args[i].val.ClearFull();
 		}
+
+		args = 0;
+		asz = 0;
+		usz = 0;
+
+		return ;
 	}
 	
 };
@@ -676,6 +422,7 @@ void msl_math_ops(int op, VString a, VString b, msl_value *ret){
 		case '*': dr = da * db; break;
 		case '/': dr = da / db; break;
 		case '%': dr = (int64)da % (int64)db; break;
+		default: dr = 0; break;
 	}
 
 	ret->val = it.dtos(dr);
@@ -703,7 +450,7 @@ class msl_fl{
 	int do_opt, do_opt_stopit, do_opt_ifw, do_opt_cbr, do_opt_active;
 
 	// positions line count, char *line, char this pos in line
-	int do_line_count; unsigned char *do_line, *do_line_t;
+	int do_line_count, do_line_count_ignore; unsigned char *do_line, *do_line_t;
 
 	// values
 	msl_value global_value;
@@ -712,6 +459,9 @@ class msl_fl{
 
 	// functions
 	msl_function functions;
+	// used flag
+	msl_value functions_uf;
+	//IList <msl_value*> functions_global;
 
 	// globals
 	msl_globals globals;
@@ -759,7 +509,7 @@ class msl_fl{
 	void Do(VString code){
 		unsigned char *line=code, *pline=line, *to=code.endu();
 		// stop it & active
-		do_opt_stopit=0; do_opt_active=1; do_opt_ifw=0; do_opt_cbr=0; do_line_count=0; do_line=line; do_line_t=line;
+		do_opt_stopit=0; do_opt_active=1; do_opt_ifw=0; do_opt_cbr=0; do_line_count=0; do_line_count_ignore = 0; do_line=line; do_line_t=line;
 		// value;
 		msl_value outval;
 
@@ -1684,11 +1434,11 @@ class msl_fl{
 		while(line<to){
 			if(*line==' ' || *line=='\t') line++;
 			else if(*line=='\r'){
-				if(line+1<to || *(line+1)=='\n'){ ++do_line_count; do_line=line+2; }
-				line++;
+				if(line+1<to || *(line+1)=='\n'){ if(!do_line_count_ignore) ++do_line_count; do_line=line+2; }
+				line += 2;
 			}
 			else if(*line=='\n'){
-				line++; ++do_line_count; do_line=line;
+				line++; if(!do_line_count_ignore) ++do_line_count; do_line=line;
 			}
 			else break;
 		}
@@ -1760,13 +1510,18 @@ class msl_fl{
 			// save and new
 			msl_value *_local_value=local_value, func_value; local_value=&func_value;
 			// save values
-			int old_active=do_opt_active;
+			int old_active  =do_opt_active;
+			int old_do_line_count_ignore = do_line_count_ignore;
 			// output value
 			msl_value outval;
+
+			do_line_count_ignore = 1;
 
 			for(int i=0; i<func->args.Sz(); i++){
 				local_value->Set(func->args[i].fkey, &args[i].val); //(args.Sz()>=i+1) ? args[i].val.val : func->args[i].fval);
 			}
+
+			msl_value *global_uf[256]; // max function globals
 
 			for(int i = 0; i < func->globals.Sz(); i++){
 				msl_value *gv, *lv;
@@ -1777,9 +1532,20 @@ class msl_fl{
 					SetError("global $(value) allready defined.");
 				}
 
-				lv->_a = gv->_a;
-				lv->_e = gv->_e;
-				lv->val -= gv->val;
+				if(gv->_a == &functions_uf){
+					global_uf[i] = gv->_e;
+					lv->_a = gv->_e->_a;
+					lv->_e = gv->_e->_e;
+					lv->val -= gv->_e->val;
+				}else{
+					lv->_a = gv->_a;
+					lv->_e = gv->_e;
+					lv->val -= gv->val;
+
+					global_uf[i] = gv;
+					gv->_a = &functions_uf;
+					gv->_e = lv;
+				}
 			}
 
 			unsigned char *fline=func->code, *eline=func->code.endu(); 
@@ -1793,12 +1559,18 @@ class msl_fl{
 				lv = local_value->GetV(name);
 
 				if(!lv && gv){
-					gv->_a = 0;
-					gv->_e = 0;
+					global_uf[i]->_a = 0;
+					global_uf[i]->_e = 0;
+					//gv->_a = 0;
+					//gv->_e = 0;
 				} else if(lv && gv){
-					gv->_a = lv->_a;
-					gv->_e = lv->_e;
-					gv->val -= lv->val;
+					global_uf[i]->_a = lv->_a;
+					global_uf[i]->_e = lv->_e;
+					global_uf[i]->val -= lv->val;
+					//gv->_a = lv->_a;
+					//gv->_e = lv->_e;
+					//gv->val -= lv->val;
+
 					lv->_a = 0;
 					lv->_e = 0;					
 				}
@@ -1809,6 +1581,7 @@ class msl_fl{
 
 			// load old value
 			do_opt_active=old_active; do_opt_ifw=0;
+			do_line_count_ignore = old_do_line_count_ignore;
 			// load
 			local_value=_local_value;
 			// return output value
@@ -1843,9 +1616,11 @@ class msl_fl{
 		}
 
 		else if(name=="array"){
+			Itos it;
+
 			int n=0;
 			for(int i=0; i<args.Sz(); i++){
-				val.Set(args[i].val.key ? args[i].val.key : itos(n++), args[i].val.val);
+				val.Set(args[i].val.key ? args[i].val.key : it.itos(n++), args[i].val.val);
 			}
 		}
 
@@ -2106,13 +1881,13 @@ protected:
 
 	void SetWarning(VString line){
 		// add error line to result
-		output + "MSL-FL Warning: '" + line + "' in '" + file_path + "' on " + itos(_getlinecount()) + " line " + itos(_getlinesz()) + " row\r\n";
+		output + "MSL-FL Warning: '" + line + "' in '" + file_path + "' on " + itos(_getlinecount() + 1) + " line " + itos(_getlinesz()) + " row\r\n";
 		return ;
 	}
 
 	void SetError(VString line){
 		// add error line to result
-		output + "MSL-FL Error: '" + line + "' in '" + file_path + "' on " + itos(_getlinecount()) + " line " + itos(_getlinesz()) + " row\r\n";
+		output + "MSL-FL Error: '" + line + "' in '" + file_path + "' on " + itos(_getlinecount() + 1) + " line " + itos(_getlinesz()) + " row\r\n";
 		// stop
 		do_opt_stopit = 1;
 		return ;
@@ -2120,7 +1895,7 @@ protected:
 
 	void SetEpic(VString line){
 		// add error line to result
-		output + "MSL-FL Epic Fail: '" + line + "' in '" + file_path + "' on " + itos(_getlinecount()) + " line " + itos(_getlinesz()) + " row\r\n";
+		output + "MSL-FL Epic Fail: '" + line + "' in '" + file_path + "' on " + itos(_getlinecount() + 1) + " line " + itos(_getlinesz()) + " row\r\n";
 		// stop
 		do_opt_stopit = 1;
 		return ;
@@ -2221,6 +1996,82 @@ void GetLine(msl_value &val, HLString &ls){
 	return ;
 }
 
+
+
+// msl_value_template
+template<class B>
+void JsonToMsl(XDataEl *el, msl_value_template<B> &val, int clear = 1){
+	if(clear)
+		val.Clear();
+
+	int i = 0;
+	Itos it;
+	el = el->a();
+	
+	while(el){
+		if(!el->a())
+			val.Set(el->key ? el->key : it.itos(i++), el->val);
+		else{
+			JsonToMsl(el, *val.Set(el->key ? el->key : it.itos(i++), ""), clear);
+		}
+		el = el->n();
+	}
+	return ;
+}
+
+
+template<class B>
+void GetLine(msl_value_template<B> &val, HLString &ls);
+
+template<class B>
+TString GetLine(msl_value_template<B> &val){
+	if(!val._a)
+		return TString();
+
+	HLString ls;
+	GetLine(val, ls);
+
+	return ls;
+}
+
+template<class B>
+void GetLine(msl_value_template<B> &val, HLString &ls){
+	int a = val.a() != 0 && val.a()->k(), f = 1;
+	if(a)
+		ls + "{";
+	else
+		ls + "[";
+
+	msl_value_template<B> *v = val._a;
+	while(v){
+		if(!f)
+			ls + ",";
+		else
+			f = 0;
+
+		if(v->_a){
+			if(a)
+				ls + "\"" + v->k() + "\":";
+			GetLine(*v, ls);
+		} else{
+			if(v->k())
+				ls + "\"" + v->k() + "\":";
+			if(!v->v())
+				ls + "null";
+			else
+				ls + "\"" + v->v() + "\"";
+		}
+		//ls+v->key+":"+v->val;
+		v = v->_n;
+	}
+
+	if(a)
+		ls + "}";
+	else
+		ls + "]";
+	return ;
+}
+
 #endif
 
 
@@ -2239,7 +2090,7 @@ MString GetCJXLine(msl_value &val){
 		if(!h)
 			return MString();
 		
-		h->ver=1;
+//		h->ver=1;
 
 		return ret;
 	}
@@ -2250,7 +2101,7 @@ MString GetCJXLine(msl_value &val){
 	
 	GetCJXLineD(els, val, ls);
 
-	h->els=els;
+//	h->els=els;
 	h->size=ls.size()-sizeof(CJXParseH);
 
 	return ls;

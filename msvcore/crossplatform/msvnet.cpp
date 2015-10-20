@@ -4,7 +4,10 @@ class _msv_active_socket{
 public:
 	_msv_active_socket(){
 #ifdef WIN32
-		WSADATA WsaData; WSAStartup(MAKEWORD(2, 2), &WsaData);
+		WSADATA WsaData;
+		int r = WSAStartup(MAKEWORD(2, 2), &WsaData);
+		if(!r)
+			return ;
 #else
 		signal(SIGPIPE, SIG_IGN);
 #endif 
