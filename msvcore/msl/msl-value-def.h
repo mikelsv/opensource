@@ -25,6 +25,11 @@ protected:
 		this->val = val;
 	}
 
+	void BaseCleanKeyVal(){
+		key.Clean();
+		val.Clean();
+	}
+
 	template<class B>
 	B* BaseNew(){
 		B *p;
@@ -58,8 +63,8 @@ protected:
 //};
 
 
-template<class msl_value_base>
-class msl_value_template : public msl_value_base{
+template<class t_msl_value>
+class msl_value_template : public t_msl_value{
 
 public:
 	msl_value_template *_a, *_e, *_p, *_n;
@@ -73,7 +78,7 @@ public:
 	msl_value_template(const VString text){
 		MSVMEMORYCONTROLC;
 		_a = 0; _e = 0; _p = 0; _n = 0;
-		BaseSetVal(text);		
+		t_msl_value::BaseSetVal(text);		
 	}
 
 	msl_value_template(msl_value_template &val){
@@ -84,7 +89,8 @@ public:
 
 	// New
 	msl_value_template* New(){
-		msl_value_template *p = BaseNew<msl_value_template>();
+		//msl_value_template *p = t_msl_value::BaseNew<msl_value_template>();
+		msl_value_template *p = t_msl_value::template BaseNew<msl_value_template>();
 		if(!p)
 			return 0;
 
@@ -93,7 +99,7 @@ public:
 	}
 
 	msl_value_template* New(msl_value_template *prev){
-		msl_value_template *p = BaseNew<msl_value_template>();
+		msl_value_template *p = t_msl_value::template BaseNew<msl_value_template>();
 		if(!p)
 			return 0;
 
@@ -322,8 +328,8 @@ public:
 	}
 
 	int Memory(int &count){
-		int mem = sizeof(*this) + k() + v();
-		count++;
+		int mem = sizeof(*this) + this->k() + this->v();
+		count ++;
 
 		msl_value_template *p = _a;
 		while(p){
@@ -346,7 +352,7 @@ public:
 		msl_value_template *p = Find(key);
 		if(p){
 			OMDel(p);
-			BaseDel(p);
+			t_msl_value::BaseDel(p);
 			return 1;
 		}
 		return 0;
@@ -358,7 +364,7 @@ public:
 
 		// test in this line
 		OMDel(p);
-		BaseDel(p);
+		t_msl_value::BaseDel(p);
 
 		return ;
 	}
@@ -370,7 +376,7 @@ public:
 			d = p;
 			p = p->_n;
 			OMDel(d);
-			BaseDel(d);
+			t_msl_value::BaseDel(d);
 		}
 
 		_a=0;
@@ -382,8 +388,7 @@ public:
 	void ClearFull(){
 		Clear();
 
-		 key.Clean();
-		 val.Clean();
+		msl_value_base::BaseCleanKeyVal();
 	}
 
 	~msl_value_template(){

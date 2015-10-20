@@ -34,6 +34,11 @@ protected:
 		BaseSetKeyVal(k(), val);
 	}
 
+	void BaseCleanKeyVal(){
+		keyval.Clean();
+		keysize = 0;
+	}
+
 	template<class B>
 	B* BaseNew(){
 		B *val = (B*) ThreadStringNew(sizeof(B));
