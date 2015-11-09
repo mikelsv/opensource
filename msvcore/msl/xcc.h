@@ -470,7 +470,7 @@ int XCC::Lexp(VString data, unsigned char f, unsigned char *&rln, unsigned int &
 			ifllnadd(ln, 1);
 		}
 		else{
-			SetError(HLString() + "Unknown sumbol: '" + VString(ln, 1) + "'.", cln);
+			SetError((HLString() + "Unknown sumbol: '" + VString(ln, 1) + "'.").String(), cln);
 			break;
 		}
 	}
@@ -867,7 +867,7 @@ if(rcln==150)
 					for(p; p<rb; p++){ if(!(XCC_CISNAME(*p))){ break; }} // skip val
 					l.setu(lp, p-lp);
 					for(p; p<rb; p++){ if(*p!=' ' || *p!='\t') break; } // skip space
-					if(p!=rb){ SetError(HLString()+"#if bad block: '"+VString(lb, rb-lb)+"'.", rcln); return 0; }
+					if(p!=rb){ SetError((HLString()+"#if bad block: '"+VString(lb, rb-lb)+"'.").String(), rcln); return 0; }
 
 					// 
 					XCCDef *def=GetDefine(l); VString ret;
@@ -915,7 +915,7 @@ if(rcln==150)
 					else if(c=="=="){ int il=l.toi(), ir=r.toi(); ret= il==ir ? "1" : "0"; }
 					else if(c=="&&"){ int il=l.toi(), ir=r.toi(); ret= il && ir ? "1" : "0"; }
 					else if(c=="||"){ int il=l.toi(), ir=r.toi(); ret= il || ir ? "1" : "0"; }
-					else { SetError(HLString()+"#if operation: '"+c+"' not accessible. sorry.", rcln); return 0; }
+					else { SetError((HLString()+"#if operation: '"+c+"' not accessible. sorry.").String(), rcln); return 0; }
 
 					rt.Add(VString(it.ret.data, lb-it.ret.data), ret, VString(rb+1, it.ret.endu()-rb)); it=rt;
 					break; // or create normal lb and rb, else it crash.
@@ -1137,7 +1137,7 @@ TString XCC::GetResultLine(VString line){
 		}
 	}	
 
-	return ls;
+	return ls.String();
 }
 
 int XCC::_skipspace(unsigned char *&ln, unsigned char *to){
@@ -1289,7 +1289,7 @@ int XCC::AddDefine(VString name, VString param, VString data){
 
 	for(int i=0; i<define.size; i++){
 		if(define[i].name==name){
-			SetWarning(HLString()+" #define "+name+" already set.", tmp_cln);
+			SetWarning((HLString()+" #define "+name+" already set.").String(), tmp_cln);
 			return 0;
 		}
 		if(fid==-1 && !define[i].name) fid=i;

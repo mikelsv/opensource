@@ -150,7 +150,7 @@ int main(int args, char* arg[]){
 //#include "msvnet.h"
 #include "crossplatform/msvnet.cpp"
 
-#include "list/FString.cpp"
+//#include "list/FString.cpp"
 //#include "list/TString.cpp" // Thread String
 
 #ifdef USEMSV_ITOS

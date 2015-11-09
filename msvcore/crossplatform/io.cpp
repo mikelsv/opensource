@@ -2,14 +2,14 @@
 #ifndef WINCE
 HANDLE _std_input_handle = GetStdHandle(STD_INPUT_HANDLE);
 HANDLE _std_output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-#endif
-#endif
 
 void MsvAllocConsole(){
 	AllocConsole();
 	_std_input_handle = GetStdHandle(STD_INPUT_HANDLE);
 	_std_output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 }
+#endif
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////// Print
 #ifdef USEMSV_TCPPRINT
