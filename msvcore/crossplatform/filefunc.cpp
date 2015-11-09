@@ -51,8 +51,7 @@ inline int fileeof(HFILE hfile){ return chsize64(hfile, tell64(hfile)); }
 inline int fileeof(HFILE hfile){ return ftruncate(hfile, lseek64(hfile, 0, SEEK_CUR)); }
 #endif
 
-
-HFILE CreateFile(VString file, int op, int pm){ return _open(TString(file), op|O_BINARY, pm); }
+HFILE CreateFile(VString file, int op, int pm){ if(!file) return -1; return _open(TString(file), op|O_BINARY, pm); }
 int ReadFile(HFILE fl, void* buf, unsigned int sz){ return _read(fl, buf, sz); }
 int WriteFile(HFILE fl, const void* buf, unsigned int sz){ return _write(fl, buf, sz); }
 int64 GetFilePointer(HFILE fl){ return lseek64(fl, 0, FILE_CURRENT); }

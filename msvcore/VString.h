@@ -247,6 +247,7 @@ int dsize(unsigned int val);
 int rts(unsigned char *to, char fr, unsigned char *&line);
 int rtns(unsigned char *to, char fr, unsigned char *&line);
 int rtms(unsigned char *to, unsigned char *fr, unsigned int frs, unsigned char *&line);
+int rtmsu(unsigned char *to, unsigned char *fr, unsigned int frs, unsigned char *&line);
 // short
 int rts(unsigned short *to, short fr, unsigned short *&line);
 int rtms(unsigned short *to, unsigned short *fr, unsigned int frs, unsigned short *&line);
@@ -263,6 +264,9 @@ VString PartLineTwo(VString line, VString &two, VString el = " ", VString el2 = 
 VString PartLineO(VString line, VString el);
 VString PartLineOT(VString line, VString el);
 VString PartLineDouble(VString line, VString el, VString er);
+VString PartLineDoubleUp(VString line, VString el, VString er);
+
+VString PartLineST(VString line, VString &two); // one = "Text Part ONe" [Space || Tab] "Text Part Two" -> two
 
 VString PartLineFind(VString line, VString el);
 VString PartLineM(VString line, VString &two, VString &three, VString &four, VString &five, VString el);

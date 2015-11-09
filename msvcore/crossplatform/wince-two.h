@@ -37,8 +37,8 @@
 int GetWindowsDirectory(char*data, int sz){
 if(sz>=strlen("\\Windows\\")) memcpy(data, "\\Windows\\", strlen("\\Windows\\")); return strlen("\\Windows\\"); return 0; }
 int GetCurrentDirectory(int sz, char*data){ return 0; }
-int mkdir(const char*path){ return CreateDirectory(MODUNICODE(path), 0); }
-int rmdir(const char*path){ return RemoveDirectory(MODUNICODE(path)); }
+int mkdir(const char*path){ return CreateDirectory(MODUNICODE(TString(path)), 0); }
+int rmdir(const char*path){ return RemoveDirectory(MODUNICODE(TString(path))); }
 
 
 

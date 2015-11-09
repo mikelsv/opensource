@@ -5,6 +5,12 @@ HANDLE _std_output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 #endif
 #endif
 
+void MsvAllocConsole(){
+	AllocConsole();
+	_std_input_handle = GetStdHandle(STD_INPUT_HANDLE);
+	_std_output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////// Print
 #ifdef USEMSV_TCPPRINT
 	int ConnectPort(VString lip, int port);

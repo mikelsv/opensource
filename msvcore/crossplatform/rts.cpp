@@ -37,6 +37,22 @@ int rtms(unsigned char *to, unsigned char *fr, unsigned int frs, unsigned char *
 	} line=to+(frs-1); return 0;
 }
 
+int rtmsu(unsigned char *to, unsigned char *fr, unsigned int frs, unsigned char *&line){ //read to symbol up
+	if(!line || !fr || !frs) return 0;
+	unsigned char *lfr, *tfr, *ln;
+	to-=frs-1;
+
+	for(line; line<to; line++){
+		if(upd(*line)==upd(*fr)){
+			lfr=fr+1; tfr=fr+frs; ln=line+1;
+			for(lfr; lfr<tfr; lfr++){ if(upd(*ln++)!=upd(*lfr)){ break; } }
+			if(lfr==tfr){ return 1; }
+		}
+	} line=to+(frs-1); return 0;
+}
+
+
+
 unsigned char* rtms(unsigned char *line, unsigned char *to, unsigned char *fr, unsigned int frs){ //read to symbol
 	if(!line || !fr || !frs) return 0;
 	unsigned char *lfr, *tfr, *ln;

@@ -164,28 +164,30 @@ TString btoh(VString line);
 // unicode string short
 // short to char
 unsigned char stoc(const unsigned short s);
-MString stoc(const unsigned short *s, const int sz);
+TString stoc(const unsigned short *s, const int sz);
 char stocdos(const short s);
 char stoclin(const short s);
-MString stocdos(const short *s, const int sz);
+TString stocdos(const short *s, const int sz);
 // CHAR to SHORT
 unsigned short ctos(const unsigned char s);
-MString ctos(const unsigned char*s, const int sz);
-MString ctos(VString line);
+TString ctos(const unsigned char*s, const int sz);
+TString ctos(VString line);
 unsigned short dosctos(unsigned char v);
 // UTF to SHORT
 unsigned short utftos(unsigned short v);
-MString utftos(const VString ln);
+TString utftos(const VString ln);
 // SHORT to UTF
 unsigned short stoutf(unsigned short v);
-MString stoutf(VString line);
+TString stoutf(VString line);
 // UTF to CHAR
-MString utftoc(const VString ln, int sys=0);
-MString utftotr(const MString ln);
+TString utftoc(const VString ln, int sys=0);
+TString utftotr(const MString ln);
+// UTF Slash to Char
+TString usltochar(VString ln);
 // CHAR to UTF
-MString ctoutf(const VString ln);
+TString ctoutf(const VString ln);
 // WIN to DOS
-MString ctodos(const VString ln);
+TString ctodos(const VString ln);
 
 // Replace
 TString Replace(VString line, VString fr, VString to, unsigned int cnt=0);
@@ -258,10 +260,10 @@ void cslash(MString &val, int i);
 // Base64
 class Base64{
 public:
-	static MString btos(const VString line);
-	static MString stob(const VString line);
-	static MString mbtos(const VString line);
-	static MString mstob(const VString line);
+	static TString btos(const VString line);
+	static TString stob(const VString line);
+	static TString mbtos(const VString line);
+	static TString mstob(const VString line);
 };
 
 // MD5 - 6.12.05 1.0.0 MSVSPL Specila Library
@@ -321,8 +323,8 @@ class MD5Code{
     MD5Code();
     void Add(VString line);
     void Finish();
-    MString Get();
-    MString GetH();
+    TString Get();
+    TString GetH();
 };
 
 
@@ -467,6 +469,7 @@ public:
 	VString GetLine(unsigned int &p);
 	VString GetData();
 	unsigned int GetLine(VString &line, unsigned int p);
+	unsigned int GetLine(VString &key, VString &val, unsigned int p);
 	void Clear();
 	void ClearData();
 };

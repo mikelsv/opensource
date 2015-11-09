@@ -101,6 +101,10 @@ public:
 		return d->data;
 	}
 
+	void UpTime(){
+		cltime = time();
+	}
+
 	void Clear(){
 		ThreadStringUListData *p = data, *d = p;
 		
@@ -139,6 +143,10 @@ public:
 		//return buff.Del(p);
 	}
 
+	void UpTime(){
+		buff.UpTime();
+	}
+
 	void Clear(){
 		buff.Clear();
 	}
@@ -168,6 +176,9 @@ void ThreadStringCore::Init(){
 void ThreadStringInit(){
 	if(!do_tstring_core)
 		do_tstring_core->Init();
+
+	if(!do_tstring_core_count)
+		do_tstring_core->UpTime();
 	
 	do_tstring_core_count ++;
 

@@ -66,6 +66,7 @@ int main(int args, char* arg[]){
 // #define USEMSV_MSL_FV - use MSL Five
 // #define USEMSV_CONFLINE - use ConfLine
 // #define USEMSV_MODLINE - use ModLine
+// #define USEMSV_CPPXCC - use CppXcc preprocessor
 
 // Lists:
 // #define USEMSV_ILIST - use IList template dunamic array. Vector, one resized memory block.
@@ -95,6 +96,10 @@ int main(int args, char* arg[]){
 // Memory:
 // #define USEMSV_MEMORYCONTROL - interception malloc() & free()
 // #define USEMSV_INTERCEPT_MALLOC - interception malloc() & free() // don't work
+
+// API
+// #define USEMSV_NESTAPI - use Nest API
+// #define USEMSV_NESTAPI2 - use Nest API v.2
 
 // Special:
 // #define USEMSV_BUFECHO - Input / Output buffer echo control
@@ -148,13 +153,27 @@ int main(int args, char* arg[]){
 #include "list/FString.cpp"
 //#include "list/TString.cpp" // Thread String
 
+#ifdef USEMSV_ITOS
+	#include "crossplatform/itos.cpp"
+#endif
+
 // intercept malloc & free
+#ifdef USEMSV_INTERCEPT
+	#include "special/asmp.h"
+	#include "special/interception.h"
+#endif
+
+#ifdef USEMSV_CPPXCC 
+	#include "msl/xcc.h"
+#endif
+
 #ifdef USEMSV_INTERCEPT_MALLOC
 	#include "special/intercept-malloc.h"
 #endif
 
-#ifdef USEMSV_ITOS
-	#include "crossplatform/itos.cpp"
+// Inject Dll
+#ifdef USEMSV_INJECTDLL
+	#include "crossplatform/injectdll.cpp"
 #endif
 
 #ifdef USEMSV_XDATACONT
@@ -230,6 +249,14 @@ int main(int args, char* arg[]){
 
 #ifdef USEMSV_CONFLINE
 	#include "special/confline.cpp"
+#endif
+
+#ifdef USEMSV_NESTAPI
+	#include "proto/nest_api.h"
+#endif
+
+#ifdef USEMSV_NESTAPI2
+	#include "proto/nest_api2.h"
 #endif
 
 #ifdef USEMSV_STORMSERVER

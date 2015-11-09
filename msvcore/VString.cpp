@@ -227,6 +227,27 @@ VString PartLineTwo(VString line, VString &two, VString el, VString el2){
 	return VString(line.uchar(), pos-line.uchar());
 }
 
+VString PartLineST(VString line, VString &two){ // one = "Text Part ONe" [Space || Tab] "Text Part Two" -> two
+	unsigned char *ln = line, *to =line.endu();
+
+	while(ln < to && (*ln != ' ' || *ln !='\t'))
+		ln ++;
+
+	if(ln == to){
+		two.Clean();
+		return line;
+	}
+
+	line = line.str(ln - line.data);
+
+	while(ln < to && (*ln == ' ' || *ln =='\t'))
+		ln ++;
+
+	two.setu(ln, to - ln);
+
+	return line;
+}
+
 VString PartLineFind(VString line, VString el){
 	unsigned char *pos=line;
 	if(!rtms(line.endu(), el, el, pos)){ return VString(); }
@@ -266,6 +287,16 @@ VString PartLineDouble(VString line, VString el, VString er){
 	if(!rtms(line.endu(), er, er, pos)){ return VString(); }
 	return VString(lpos, pos-lpos);
 }
+
+VString PartLineDoubleUp(VString line, VString el, VString er){
+	unsigned char *pos=line, *lpos;
+	if(!rtmsu(line.endu(), el, el, pos)){ return VString(); }
+	lpos=pos+=el.sz; //el.setu(pos+el.sz, line.endu()-pos-el.sz);
+	if(!rtmsu(line.endu(), er, er, pos)){ return VString(); }
+	return VString(lpos, pos-lpos);
+}
+
+
 
 VString PartLineKV(VString line, VString &key, VString &val, VString elv, VString el){ // return line, set
 	key=PartLine(line, line, el);

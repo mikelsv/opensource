@@ -335,7 +335,7 @@ class GetHttp{
 	// ip
 	ConIp ip;
 	// page
-	MString r_method, r_agent, r_accept, r_post, r_cookies, page;
+	MString r_method, r_agent, r_accept, r_post, r_boundary_id, r_boundary, r_cookies, page;
 	// result: http data
 	MHttp http;
 	// return
@@ -353,7 +353,7 @@ class GetHttp{
 
 public:
 	GetHttp(){ timeout=30; repeat=1; usessl=0; minimal=0; arecv =0; asend = 0; }
-	void Clean(){ r_method.Clean(); r_agent.Clean(); r_post.Clean(); r_cookies.Clean(); http.Clean(); }
+	void Clean(){ r_method.Clean(); r_agent.Clean(); r_post.Clean(); r_boundary_id.Clean(); r_boundary.Clean(); r_cookies.Clean(); http.Clean(); }
 
 	void SetMethod(VString v){ r_method=v; }
 	VString GetMethod(){ return r_method; }
@@ -365,6 +365,9 @@ public:
 
 	void SetPost(VString v){ r_post=v; }
 	VString GetPost(){ return r_post; }
+
+	void SetBoundary(VString id, VString v){ r_boundary_id = id; r_boundary = v; }
+	//VString GetPost(){ return r_post; }
 
 	void SetMinimal(){ minimal=1; }
 
@@ -402,6 +405,18 @@ public:
 			;		
 	}
 
+	void AddBoundary(HLString &ls, VString bnid, VString key, VString val){
+		ls + "--" + bnid + "\r\n" + "Content-Disposition: form-data; name=\"" + key + "\"" "\r\n" "\r\n" + val + "\r\n";
+	}
+
+	void AddBoundaryFile(HLString &ls, VString bnid, VString key, VString name, VString val){
+		ls + "--" +  bnid + "\r\n" + "Content-Disposition: form-data; name=\"" + key + "\"; " +  "filename=\"" + name + "\"" "\r\n" + "Content-Type: application/octet-stream" "\r\n" "\r\n" + val + "\r\n";
+	}
+
+	void AddBoundaryEnd(HLString &ls, VString bnid){
+		ls + "--" + bnid + "--" "\r\n";
+	}
+
 	int Request(VString url){
 		int ret = 0, r = repeat + 1;
 		while(r){
@@ -436,7 +451,7 @@ protected:
 		if(r_method)
 			ls + r_method;
 		else
-			if(r_post)
+			if(r_post || r_boundary)
 				ls + "POST";
 			else
 				ls + "GET";
@@ -461,6 +476,10 @@ protected:
 				ls + "*/*";
 			ls+"\r\n";
 
+			//if(r_boundary_id && r_boundary){
+			//	ls + "Content-Type: multipart/form-data; boundary=" + r_boundary_id + "\r\n";
+			//}
+
 			//ls+"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n";
 			//ls+"Accept: */*\r\n";
 			//ls+"Accept-Charset: windows-1251,utf-8;q=0.7,*;q=0.7\r\n";
@@ -473,10 +492,18 @@ protected:
 		if(r_cookies){
 			ls+"Cookie: "+r_cookies+"\r\n";
 		}
+		
 		if(r_post){
 			ls+"Content-Length: " + r_post.size() + "\r\n";
 			ls+"Content-Type: application/x-www-form-urlencoded\r\n";
 		}
+
+		if(r_boundary){
+			ls + "Content-Length: " + r_boundary.size() + "\r\n";
+			ls + "Content-Type: multipart/form-data; boundary=" + r_boundary_id + "\r\n";
+		}
+
+
 		ls+"\r\n";
 
 //		print(VString(ls.oneline(), ls.size()));
@@ -500,7 +527,12 @@ protected:
 		asend += snd;
 
 		if(r_post){
-			snd=send(sock, r_post, r_post);
+			snd = send(sock, r_post, r_post);
+			asend += snd;
+		}
+
+		if(r_boundary){
+			snd = send(sock, r_boundary, r_boundary);
 			asend += snd;
 		}
 

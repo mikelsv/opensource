@@ -127,8 +127,8 @@ unsigned char stoc(const unsigned short s){
 	return (unsigned char)s;
 } // short to char
 
-MString stoc(const unsigned short *s, const int sz){	// short line to MString
-	MString ret; ret.Reserv(sz); char *r=ret;
+TString stoc(const unsigned short *s, const int sz){	// short line to MString
+	TString ret; ret.Reserv(sz); char *r=ret;
 	for(int i=0; i<sz; i++){
 		*r=stoc(*s); s++; r++;
 	}
@@ -152,8 +152,8 @@ char stoclin(const short s){
 	return -1;
 } // short to char linux
 
-MString stocdos(const short *s, const int sz){	// short line to MString
-	MString ret; ret.Reserv(sz); char *r=ret;
+TString stocdos(const short *s, const int sz){	// short line to MString
+	TString ret; ret.Reserv(sz); char *r=ret;
 	for(int i=0; i<sz; i++){
 		*r=stocdos(*s); s++; r++;
 	}
@@ -167,15 +167,15 @@ unsigned short ctos(const unsigned char s){
 	return s;
 } // char to short
 
-MString ctos(const unsigned char*s, const int sz){	// short line to MString
-	MString ret; ret.Reserv(sz*2); char *r=ret;
+TString ctos(const unsigned char*s, const int sz){	// short line to MString
+	TString ret; ret.Reserv(sz*2); char *r=ret;
 	for(int i=0; i<sz; i++){
 		*(unsigned short*)r=ctos(*s); s++; r+=2;
 	}
 	return ret;
 }
 
-MString ctos(VString line){ return ctos(line, line); }
+TString ctos(VString line){ return ctos(line, line); }
 
 unsigned short dosctos(unsigned char v){ // dos char to short
 	if(v>=128 && v<=159) return v-128+1040; // if(v>='à' && v<'ÿ') return v-'à'+32+1040;
@@ -190,7 +190,7 @@ unsigned short utftos(unsigned short v){
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-MString utftos(const VString ln){
+TString utftos(const VString ln){
 	unsigned char *to=ln.uchar()+ln.size(), *line=ln.uchar(); int lss=0;
 	for(line; line<to; line++){
 		if(*line<128) lss++;
@@ -199,7 +199,7 @@ MString utftos(const VString ln){
 		else if((*line&248)==240){ line+=3; } // four byte
 	}
 
-	MString _ls; _ls.Reserv(lss*2); unsigned short *ls=(unsigned short *)_ls.rchar(); to=ln.uchar()+ln.size(); line=ln.uchar(); lss=0; 
+	TString _ls; _ls.Reserv(lss*2); unsigned short *ls=(unsigned short *)_ls.rchar(); to=ln.uchar()+ln.size(); line=ln.uchar(); lss=0; 
 	for(line; line<to; line++){
 		if(*line<128){ *ls++=*line; }
 		else if((*line&224)==192){
@@ -220,14 +220,14 @@ unsigned short stoutf(unsigned short v){ // short to utf
 	return ((192)+((v>>6)&31))+256*((128)+(v&63));
 }
 
-MString stoutf(VString line){ unsigned short *p=(unsigned short*)line.data, *to=p+line.sz/2; int ns=0;
+TString stoutf(VString line){ unsigned short *p=(unsigned short*)line.data, *to=p+line.sz/2; int ns=0;
 	while(p<to){ // short to utf
 		if(*p<128){ ns++; }
 		else{ ns+=2; }
 		p++;
 	}
 
-	MString ret; ret.Reserv(ns); 
+	TString ret; ret.Reserv(ns); 
 	unsigned char *w=ret;
 	p=(unsigned short*)line.data;
 	
@@ -244,9 +244,9 @@ MString stoutf(VString line){ unsigned short *p=(unsigned short*)line.data, *to=
 
 // UTF to CHAR
 
-MString utftotr(const MString ln);
+TString utftotr(const VString ln);
 /////////////////////////////////////////////////////////////////////////////////////
-MString utftoc(const VString ln, int sys){ if(sys==4) return utftotr(ln);
+TString utftoc(const VString ln, int sys){ if(sys==4) return utftotr(ln);
 	unsigned char *to=ln.uchar()+ln.size(), *line=ln.uchar(); unsigned int r; int lss=0;
 	for(line; line<to; line++){
 		if(*line<128) lss++;
@@ -255,7 +255,7 @@ MString utftoc(const VString ln, int sys){ if(sys==4) return utftotr(ln);
 		else if((*line&248)==240){ line+=3; } // four byte
 	}
 
-	MString _ls; _ls.Reserv(lss); char *ls=_ls; to=ln.uchar()+ln.size(); line=ln.uchar(); lss=0; 
+	TString _ls; _ls.Reserv(lss); char *ls=_ls; to=ln.uchar()+ln.size(); line=ln.uchar(); lss=0; 
 	for(line; line<to; line++){
 		if(*line<128){ *(ls+lss)=*line; lss++; }
 		else if((*line&224)==192){
@@ -275,7 +275,7 @@ MString utftoc(const VString ln, int sys){ if(sys==4) return utftotr(ln);
 unsigned short _lntrans[]={'a', 'b', 'v', 'g', 'd', 'e', 31336, 'z', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'r', 's', 't', 'u', 'f', 'h', 'c', 25448, 29544, 'w', '\'', 'y', '\'', 'e', 31093, 31073};
 
 /////////////////////////////////////////////////////////////////////////////////////
-MString utftotr(const MString ln){
+TString utftotr(const VString ln){
 	unsigned char *to=ln.uchar()+ln.size(), *line=ln.uchar(); unsigned int r; int lss=0;
 	for (line; line<to; line++){
 		if(*line<128) lss++;
@@ -287,7 +287,7 @@ MString utftotr(const MString ln){
 		else if((*line&248)==240) { line+=3;} // four byte
 	}
 
-	MString _ls; _ls.Reserv(lss); char *ls=_ls; to=ln.uchar()+ln.size(); line=ln.uchar();lss=0;
+	TString _ls; _ls.Reserv(lss); char *ls=_ls; to=ln.uchar()+ln.size(); line=ln.uchar(); lss=0;
 
 	for (line; line<to; line++){
 		if(*line<128) { *(ls+lss)=*line; lss++;}
@@ -307,16 +307,46 @@ MString utftotr(const MString ln){
 	return _ls;
 }
 
+// UTF Slash to Char
+TString usltochar(VString ln){
+	unsigned char *to=ln.uchar()+ln.size(), *line=ln.uchar(); unsigned int r; int lss=0;
+
+	for(line; line<to; line++){
+		if(*line == '\\' && line + 5 <= to && *(line + 1) == 'u'){
+			int i = stoc(stoi((char*)line + 2, 4, 16));
+			lss ++;
+			line += 5;
+		} else
+			lss ++;
+	}
+
+	TString _ls; _ls.Reserv(lss); char *ls=_ls; to=ln.uchar()+ln.size(); line=ln.uchar(); lss=0;
+
+	for (line; line<to; line++){
+		if(*line == '\\' && line + 5 <= to && *(line + 1) == 'u'){
+			int i = stoc(stoi((char*)line + 2, 4, 16));
+			*ls++ = i;
+			lss ++;
+			line += 5;
+		} else{
+			lss ++;
+			*ls ++ = *line;
+		}
+	}
+		
+	return _ls;
+}
+
 // CHAR to UTF
 
-MString ctoutf(const VString ln){
+TString ctoutf(const VString ln){
 	unsigned char *to=ln.uchar()+ln.size(), *line=ln.uchar(); int lss=0;
 	for(line; line<to; line++){
 		if(ctos(*line)<128) lss++;
 		else{ lss+=2; } // twobyte
 	}
 
-	MString _ls; _ls.Reserv(lss); char *ls=_ls; to=ln.uchar()+ln.size(); line=ln.uchar();lss=0; 
+	TString _ls; _ls.Reserv(lss); char *ls=_ls; to=ln.uchar()+ln.size(); line=ln.uchar();lss=0; 
 	for (line; line<to; line++){
 		if(ctos(*line)<128){ *(ls+lss)=(unsigned char)ctos(*line); lss++; }
 		else { *(unsigned short*)(ls+lss)=stoutf(ctos(*line)); lss+=2; } // twobyte
@@ -326,9 +356,9 @@ MString ctoutf(const VString ln){
 
 // WIN to DOS
 
-MString ctodos(const VString ln){
+TString ctodos(const VString ln){
 	unsigned char *to=ln.uchar()+ln.size(), *line=ln.uchar();
-	MString _ls; _ls.Reserv(ln); char *ls=_ls; to=ln.uchar()+ln.size(); line=ln.uchar();
+	TString _ls; _ls.Reserv(ln); char *ls=_ls; to=ln.uchar()+ln.size(); line=ln.uchar();
 	
 	for (line; line<to; line++){
 		*ls++=stocdos(ctos(*line));
@@ -350,8 +380,8 @@ BYTE cbgetpost(unsigned char c){ if(c>='A' && c<='Z') return 1;
 }
 
 // Base 64
-MString Base64::btos(const VString line){
-		MString ret; ret.Reserv(line.size()*6/8+2, 0);
+TString Base64::btos(const VString line){
+		TString ret; ret.Reserv(line.size()*6/8+2, 0);
 		unsigned char*ln=line.uchar(), *to=ln+line.size(), *r=ret.uchar(); int i=0; unsigned short s=0;
 		while(to>ln && *(to-1)=='=') to--;
 
@@ -365,8 +395,8 @@ MString Base64::btos(const VString line){
 		return ret;
 	}
 
-	MString Base64::stob(const VString line){
-		MString ret; ret.Reserv(line.size()*8/6+3, 0);
+	TString Base64::stob(const VString line){
+		TString ret; ret.Reserv(line.size()*8/6+3, 0);
 		unsigned char*l=line.uchar(), *ln=l, *to=ln+line.size(), *r=ret.uchar(); int i=0; unsigned short s=0, t;
 
 		while(ln<to){
@@ -388,8 +418,8 @@ MString Base64::btos(const VString line){
 		return ret;
 	}
 
-MString Base64::mbtos(const VString line){
-MString ret; ret.Reserv(line.size()*6/8+2, 0);
+TString Base64::mbtos(const VString line){
+TString ret; ret.Reserv(line.size()*6/8+2, 0);
 unsigned char*ln=line.uchar(), *to=ln+line.size(), *r=ret.uchar(); int i=0;
 		
 while(ln<to){
@@ -400,8 +430,8 @@ ret.sz = i / 8;
 return ret;
 }
 
-MString Base64::mstob(const VString line){
-MString ret; ret.Reserv(line.size()*8/6+3, 0);
+TString Base64::mstob(const VString line){
+TString ret; ret.Reserv(line.size()*8/6+3, 0);
 unsigned char*l=line.uchar(), *ln=l, *to=ln+line.size(), *r=ret.uchar(); int i=0;
 
 	while(ln<to){
@@ -483,7 +513,7 @@ return 13;
 
 TString md5(VString line){
 	md5_state_t state;
-	MString ret;
+	TString ret;
 	ret.Reserv(16);
 
 	md5_init(&state);
@@ -574,9 +604,9 @@ TString md5h(VString line){
 	MD5Code::MD5Code(){ md5_init(&state); ret.Reserv(16);} 
     void MD5Code::Add(VString line){md5_append(&state, (const md5_byte_t *)line.rchar(), line.size());}
     void MD5Code::Finish(){md5_finish(&state, (md5_byte_t*)ret.rchar());}
-    MString MD5Code::Get(){return ret;}
-    MString MD5Code::GetH(){
-		MString r; r.RClean(32, 0); unsigned char *l=r, *c=ret;
+    TString MD5Code::Get(){return ret;}
+    TString MD5Code::GetH(){
+		TString r; r.RClean(32, 0); unsigned char *l=r, *c=ret;
 		for(int i=0; i<16; i++){
 			*l++=((unsigned char)*c/16 + (unsigned char)(*c/16<10 ? 48 : 87));
 			*l++=((unsigned char)*c%16 + (unsigned char)(*c%16<10 ? 48 : 87));

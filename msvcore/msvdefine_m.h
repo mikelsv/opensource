@@ -5,6 +5,8 @@ class Versions{ public: VString ver, date; };
 int globalerror();
 int globalerror(char*line);
 
+void MsvAllocConsole();
+
 int rtms(unsigned char *line, unsigned int sz, unsigned char *fr, unsigned int frsz, int &pos, bool res);
 inline int rtms(const MString &line, const MString fr, int &pos, bool res=0);
 

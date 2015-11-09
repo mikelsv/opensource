@@ -118,7 +118,7 @@ public:
 
 
 
-void RSACreateKeys(TString &pub, TString &sec){
+void RsaCreateKeys(TString &pub, TString &sec){
 	// generate keys
 	RSA *rsa = RSA_generate_key(2048, RSA_F4, NULL, NULL);
 	int sz;
@@ -147,17 +147,17 @@ void RSACreateKeys(TString &pub, TString &sec){
 	return ;
 }
 
-int RSASaveCreateKeys(VString pubf, VString secf){
+int RsaSaveCreateKeys(VString pubf, VString secf){
 	TString pub, sec;
 	int ret=1;
 
-	RSACreateKeys(pub, sec);
+	RsaCreateKeys(pub, sec);
 	ret&=SaveFile(pubf, pub)>0;
 	ret&=SaveFile(secf, sec)>0;
 	return ret;
 }
 
-TString RSAOperation(int type, VString key, VString text){
+TString RsaOperation(int type, VString key, VString text){
 	if(!text)
 		return TString();
 
@@ -214,26 +214,26 @@ TString RSAOperation(int type, VString key, VString text){
 	return ret;
 }
 
-TString RSAPublicEncode(VString key, VString text){
-	return RSAOperation(0, key, text);
+TString RsaPublicEncode(VString key, VString text){
+	return RsaOperation(0, key, text);
 }
 
-TString RSAPublicDecode(VString key, VString text){
-	return RSAOperation(1, key, text);
+TString RsaPublicDecode(VString key, VString text){
+	return RsaOperation(1, key, text);
 }
 
 TString RSAPrivateEncode(VString key, VString text){
-	return RSAOperation(2, key, text);
+	return RsaOperation(2, key, text);
 }
 
-TString RSAPrivateDecode(VString key, VString text){
-	return RSAOperation(3, key, text);
+TString RsaPrivateDecode(VString key, VString text){
+	return RsaOperation(3, key, text);
 }
 
 
 void test_rsa(){
 	TString pub, sec, e, d;
-	RSACreateKeys(pub, sec);
+	RsaCreateKeys(pub, sec);
 //	e=RSAEncode(pub, "The test string for encrypt/decrypt");
 //	d=RSADecode(sec, e);
 	return ;
@@ -241,7 +241,7 @@ void test_rsa(){
 
 
 // AES
-TString AESEncode(VString line, VString ckey, VString ivec){
+TString AesEncode(VString line, VString ckey, VString ivec){
 	TString ret;
 	ret.Reserv(line.sz*2);
 	int retlen=0, retlenf=0;
@@ -258,7 +258,7 @@ TString AESEncode(VString line, VString ckey, VString ivec){
 	return ret;
 }
 
-TString AESDecode(VString line, VString ckey, VString ivec){
+TString AesDecode(VString line, VString ckey, VString ivec){
 	TString ret;
 	ret.Reserv(line.sz+16);
 	int retlen=0, retlenf=0;
@@ -276,11 +276,25 @@ TString AESDecode(VString line, VString ckey, VString ivec){
 	return ret;
 }
 
-TString SSLGetUniqLine(){
+TString SslGetUniqLine(){
 	TString pub, sec;
-	RSACreateKeys(pub, sec);
-	return RSAPublicEncode(pub, sec.str(32, 100));
+	RsaCreateKeys(pub, sec);
+	return RsaPublicEncode(pub, sec.str(32, 100));
 }
+
+TString RandGetUniqLine(){
+	TString ret;
+	ret.Reserv(256);
+
+	unsigned char *r = ret, *to = ret.endu();
+
+	while(r < to){
+		*r++ = mrand(256);
+	}
+
+	return ret;
+}
+
 
 
 // prog secure
@@ -296,16 +310,16 @@ int ProgSecureInit(){
 	// create
 	if(!IsFile("secure/_init_0.key")){
 		SaveFile("secure/do_not_delete_this_files.txt", "Else all data will be lose!");
-		SaveFile("secure/_init_0.key", SSLGetUniqLine());
+		SaveFile("secure/_init_0.key", RandGetUniqLine());
 	}
 
 	_ssl_init_0=LoadFile("secure/_init_0.key");
 
 	// create RSA keys
 	if(!IsFile("secure/_init_1.key") || !IsFile("secure/_init_2.key")){
-		RSASaveCreateKeys("secure/_init_1.key", "secure/_init_2.key");
-		SaveFile("secure/_init_1.key", AESEncode(LoadFile("secure/_init_1.key"), _ssl_init_0, _ssl_init_p));
-		SaveFile("secure/_init_2.key", AESEncode(LoadFile("secure/_init_2.key"), _ssl_init_0, _ssl_init_s));
+		RsaSaveCreateKeys("secure/_init_1.key", "secure/_init_2.key");
+		SaveFile("secure/_init_1.key", AesEncode(LoadFile("secure/_init_1.key"), _ssl_init_0, _ssl_init_p));
+		SaveFile("secure/_init_2.key", AesEncode(LoadFile("secure/_init_2.key"), _ssl_init_0, _ssl_init_s));
 	}
 
 	_ssl_init_1=LoadFile("secure/_init_1.key");
@@ -315,43 +329,43 @@ int ProgSecureInit(){
 }
 
 
-TString AESEncodeMyDataBlock(VString data, VString ckey, VString ivek){
+TString AesEncodeMyDataBlock(VString data, VString ckey, VString ivek){
 	TString ret;
 	
-	TString key=SSLGetUniqLine();
-	TString key2=SSLGetUniqLine();
+	TString key = RandGetUniqLine();
+	TString key2 = RandGetUniqLine();
 
-	key+=VString(key2).str(0, 100);
-	return ret.Add(VString(key).str(0, 256), RSAPublicEncode(ckey, VString(key2).str(0, 100)), AESEncode(data, key, ivek));
+	key += VString(key2).str(0, 100);
+	return ret.Add(VString(key).str(0, 256), RsaPublicEncode(ckey, VString(key2).str(0, 100)), AesEncode(data, key, ivek));
 }
 
 TString AESDecodeMyDataBlock(VString data, VString ckey, VString ivek){
-	TString key=data.str(0, 256);
-	VString key2=data.str(256, 256);
-	VString line=data.str(512);
+	TString key = data.str(0, 256);
+	VString key2 = data.str(256, 256);
+	VString line = data.str(512);
 
-	key.Add(key, RSAPrivateDecode(ckey, key2));
-	return AESDecode(line, key, ivek);
+	key.Add(key, RsaPrivateDecode(ckey, key2));
+	return AesDecode(line, key, ivek);
 }
 
 
 TString TEncodeData(VString data){
 	TString ret;
 	
-	TString key=SSLGetUniqLine();
-	TString key2=SSLGetUniqLine();
+	TString key = RandGetUniqLine();
+	TString key2 = RandGetUniqLine();
 
-	key+=VString(key2).str(0, 100);
-	return ret.Add(VString(key).str(0, 256), RSAPublicEncode(AESDecode(_ssl_init_1, _ssl_init_0, _ssl_init_p), VString(key2).str(0, 100)), AESEncode(data, key, _ssl_init_1));
+	key += VString(key2).str(0, 100);
+	return ret.Add(VString(key).str(0, 256), RsaPublicEncode(AesDecode(_ssl_init_1, _ssl_init_0, _ssl_init_p), VString(key2).str(0, 100)), AesEncode(data, key, _ssl_init_1));
 }
 
 TString TDecodeData(VString data){
-	TString key=data.str(0, 256);
-	VString key2=data.str(256, 256);
-	VString line=data.str(512);
+	TString key = data.str(0, 256);
+	VString key2 = data.str(256, 256);
+	VString line = data.str(512);
 
-	key.Add(key, RSAPrivateDecode(AESDecode(_ssl_init_2, _ssl_init_0, _ssl_init_s), key2));
-	return AESDecode(line, key, _ssl_init_1);
+	key.Add(key, RsaPrivateDecode(AesDecode(_ssl_init_2, _ssl_init_0, _ssl_init_s), key2));
+	return AesDecode(line, key, _ssl_init_1);
 }
 
 /*

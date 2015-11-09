@@ -1956,6 +1956,7 @@ void JsonToMslMulti(XDataEl *el, msl_value &val, int clear=1){
 //	return ;
 //}
 
+/*
 void GetLine(msl_value &val, HLString &ls);
 
 MString GetLine(msl_value &val){
@@ -1995,7 +1996,7 @@ void GetLine(msl_value &val, HLString &ls){
 		ls+"]";
 	return ;
 }
-
+*/
 
 
 // msl_value_template
@@ -2021,21 +2022,116 @@ void JsonToMsl(XDataEl *el, msl_value_template<B> &val, int clear = 1){
 
 
 template<class B>
-void GetLine(msl_value_template<B> &val, HLString &ls);
+unsigned int GetLineCount(msl_value_template<B> &val){
+	int a = val.a() != 0 && val.a()->k(), f = 1;
+	int sz = 0;
+
+	msl_value_template<B> *v = val._a;
+	while(v){
+		if(!f)
+			sz ++;
+		else
+			f = 0;
+
+		if(v->_a){
+			if(a)
+				sz += 3 + v->k().sz;
+			sz += GetLineCount(*v);
+		} else{
+			if(v->k())
+				sz += 3 + v->k().sz;
+
+			if(!v->v())
+				sz += 4;
+			else
+				sz += 2 + v->v().sz;
+		}
+
+		v = v->_n;
+	}
+
+	sz +=2;
+
+	return sz;
+}
+
+template<class B>
+unsigned char* GetLine(msl_value_template<B> &val, unsigned char *to){
+	int a = val.a() != 0 && val.a()->k(), f = 1;
+	if(a)
+		*to ++ = '{';
+	else
+		*to ++ = '[';
+
+	msl_value_template<B> *v = val._a;
+	while(v){
+		if(!f)
+			*to ++ = ',';
+		else
+			f = 0;
+
+		if(v->_a){
+			if(a){
+				*to ++ = '"';
+				memcpy(to, v->k(), v->k());
+				to += v->k();
+				*to ++ = '"';
+				*to ++ = ':';
+			}
+			to = GetLine(*v, to);
+		} else{
+			if(v->k()){
+				//ls + "\"" + v->k() + "\":";
+				*to ++ = '"';
+				memcpy(to, v->k(), v->k());
+				to += v->k();
+				*to ++ = '"';
+				*to ++ = ':';
+			}
+
+			if(!v->v()){
+				memcpy(to, "null", 4);
+				to += 4;
+				//ls + "null";
+			}
+			else{
+				//ls + "\"" + v->v() + "\"";
+				*to ++ = '"';
+				memcpy(to, v->v(), v->v());
+				to += v->v();
+				*to ++ = '"';
+			}
+		}
+		//ls+v->key+":"+v->val;
+		v = v->_n;
+	}
+
+	if(a)
+		*to ++ = '}';
+	else
+		*to ++ = ']';
+
+	return to;
+}
 
 template<class B>
 TString GetLine(msl_value_template<B> &val){
 	if(!val._a)
 		return TString();
 
-	HLString ls;
-	GetLine(val, ls);
+	TString ret;
+	ret.Reserv(GetLineCount(val));
 
-	return ls;
+	GetLine(val, ret);
+
+	//HLString ls;
+	//GetLine(val, ls);
+
+	return ret;
 }
 
 template<class B>
-void GetLine(msl_value_template<B> &val, HLString &ls){
+void GetLineL(msl_value_template<B> &val, HLString &ls){
 	int a = val.a() != 0 && val.a()->k(), f = 1;
 	if(a)
 		ls + "{";
@@ -2072,10 +2168,99 @@ void GetLine(msl_value_template<B> &val, HLString &ls){
 	return ;
 }
 
+template<class B>
+TString GetLinePost(msl_value_template<B> &val){
+	if(!val._a)
+		return TString();
+
+	HLString ls;
+
+	msl_value_template<B> *p = val._a;
+	while(p){
+		if(ls)
+			ls + "&";
+		ls + p->k() + "=" + p->v();
+
+		p = p->_n;
+	}
+
+	return ls;
+}
+
+
 #endif
 
 
 #ifdef USEMSV_CJX
+
+template<class B>
+unsigned int CjxGetLineCount(msl_value_template<B> &val){
+	int a = val.a() != 0 && val.a()->k();
+	int sz = 0;
+
+	CjxProtoData d;
+
+	msl_value_template<B> *v = val._a;
+	while(v){
+		if(v->_a){
+			sz += d.CountUp(v->k());
+			sz += CjxGetLineCount(*v);
+		} else
+			sz += d.Count(v->k(), v->v());
+
+		v = v->_n;
+	}
+
+	sz += d.CountDown();
+
+	return sz;
+}
+
+template<class B>
+unsigned char* CjxGetLine(msl_value_template<B> &val, unsigned char *to){
+	int a = val.a() != 0 && val.a()->k(), f = 1;
+	
+	msl_value_template<B> *v = val._a;
+	while(v){
+		CjxProtoData &d = (CjxProtoData*)to;
+
+		if(v->_a){
+			to += d.SetLineUp(v->k());
+			to = CjxGetLine(*v, to);
+		} else
+			to += d.SetLine(v->k(), v->v());
+
+		v = v->_n;
+	}
+
+	CjxProtoData &d = (CjxProtoData*)to;
+	to += d.SetLineDown();
+
+	return to;
+}
+
+template<class B>
+TString CjxGetLine(msl_value_template<B> &val){
+	if(!val._a)
+		return TString();
+
+	TString ret;
+	unsigned int rsz = CjxGetLineCount(val);
+
+	ret.Reserv(sizeof(CjxProtoHead) + rsz);
+
+	CjxProtoHead &head = (CjxProtoHead*) ret.data;
+	unsigned char *line = ret.data + sizeof(CjxProtoHead);
+
+	CjxGetLine(val, line);
+
+	head.Init(rsz);
+
+	return ret;
+}
+
+#ifdef IAM_YOU_CODE___NOOOOOOO
+
 
 void GetCJXLineD(int &els, msl_value &val, HLString &ls);
 
@@ -2144,4 +2329,5 @@ void GetCJXLineD(int &els, msl_value &val, HLString &ls){
 	return ;
 }
 
+#endif
 #endif

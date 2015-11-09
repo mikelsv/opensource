@@ -894,6 +894,10 @@ bool Lock(){
 	lock=1; threadid=thid; return 1;
 }
 
+int Count(){
+	return lock;
+}
+
 bool UnLock(){
 	DWORD thid=GetCurrentThreadId();
 

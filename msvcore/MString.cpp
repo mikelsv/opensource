@@ -86,8 +86,10 @@ MString& MString::setu(const unsigned char* line, const unsigned int size){ unsi
 // --------------------------------------------------- Add  Добавление	
 
 const MString& MString::operator+=(const VString& string){
-	int szo=sz; int szt=string.sz;
+	if(!string)
+		return *this;
 
+	int szo=sz; int szt=string.sz;
 	sz=szo+szt; unsigned char* odata=data;
 	MStringNew(0);
 	memcpy(data, odata, szo);

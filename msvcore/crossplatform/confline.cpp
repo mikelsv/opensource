@@ -87,7 +87,23 @@ VString ConfLine::LoadData(VString fl, VString dt){
 	}
 
 	unsigned int ConfLine::GetLine(VString &line, unsigned int p){
-		line=GetLine(p); return p;
+		line = GetLine(p);
+		return p;
+	}
+
+	unsigned int ConfLine::GetLine(VString &key, VString &val, unsigned int p){
+		key = GetLine(p);
+		key = PartLineTwo(key, val);
+
+		while(val[0] == ' ' || val[0] == '\t'){
+			val.data++;
+			val.sz --;
+		}
+
+		while(val.endo() == ' ' || val.endo() == '\t')
+			val.sz --;
+
+		return p;
 	}
 
 	VString ConfLine::GetData(){
