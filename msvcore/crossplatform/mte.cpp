@@ -1124,6 +1124,9 @@ class MTEVA{ public:
 		IP6_ADDRESS ip6; memset(&ip6, 0,16); return ip6;
 	}
 
-
+	//operator MACADDR_S(){
+	//	if(tp==MTEVAT_INT && sz==7){ return *(MACADDR_S*)&i; }
+	//	return MACADDR_S();
+	//}
 
 };

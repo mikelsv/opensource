@@ -682,32 +682,58 @@ OMatrix *_a, *_e; // +data
 
 OMatrixT(){ _a=0; _e=0; }
 
-// IF _p as _a && _n as _e;
-bool OMAdd(OMatrix*el){
-	if(!_a){ _a=el; _e=el; el->_p=0; el->_n=0; return 1;}
-	//_e->_n=el; el->_p=_e; el->_n=0; _e=el; return 1;
-	el->_n=0; el->_p=_e; _e->_n=el; _e=el; return 1;
-}
+	// IF _p as _a && _n as _e;
+	bool OMAdd(OMatrix*el){
+		if(!_a){ _a=el; _e=el; el->_p=0; el->_n=0; return 1;}
+		//_e->_n=el; el->_p=_e; el->_n=0; _e=el; return 1;
+		el->_n=0; el->_p=_e; _e->_n=el; _e=el; return 1;
+	}
 
-bool OMDel(OMatrix*el){
-	if(el->_n) el->_n->_p=el->_p; else if(el==_e) _e=el->_p;
-	if(el->_p) el->_p->_n=el->_n; else if(el==_a) _a=el->_n;
-	return 1;
-}
+	bool OMAddP(OMatrix *&_a, OMatrix *&_e, OMatrix*el){
+		if(!_a){ _a=el; _e=el; el->_p=0; el->_n=0; return 1;}
+		//_e->_n=el; el->_p=_e; el->_n=0; _e=el; return 1;
+		el->_n=0; el->_p=_e; _e->_n=el; _e=el; return 1;
+	}
 
-bool OMAddEx(OMatrix*p, OMatrix*el){
-	if(!_a){ _a=el; _e=el; el->_p=0; el->_n=0; return 1;}
-
-	if(!p){
-		el->_p=0; el->_n=_a; _a->_p=el; _a=el;
-		//if(_a==_e) _e=el; its fail
+	bool OMDel(OMatrix*el){
+		if(el->_n) el->_n->_p=el->_p; else if(el==_e) _e=el->_p;
+		if(el->_p) el->_p->_n=el->_n; else if(el==_a) _a=el->_n;
 		return 1;
 	}
 
-	el->_p=p; el->_n=p->_n;
-	p->_n=el; if(el->_n) el->_n->_p=el; else _e=el;
-	return 1;
-}
+	static bool OMDelP(OMatrix *&_a, OMatrix *&_e, OMatrix *el){
+		if(el->_n) el->_n->_p=el->_p; else if(el==_e) _e=el->_p;
+		if(el->_p) el->_p->_n=el->_n; else if(el==_a) _a=el->_n;
+		return 1;
+	}
+
+	bool OMAddEx(OMatrix*p, OMatrix*el){
+		if(!_a){ _a=el; _e=el; el->_p=0; el->_n=0; return 1;}
+
+		if(!p){
+			el->_p=0; el->_n=_a; _a->_p=el; _a=el;
+			//if(_a==_e) _e=el; its fail
+			return 1;
+		}
+
+		el->_p=p; el->_n=p->_n;
+		p->_n=el; if(el->_n) el->_n->_p=el; else _e=el;
+		return 1;
+	}
+
+	static bool OMAddExP(OMatrix *&_a, OMatrix *&_e, OMatrix*p, OMatrix*el){
+		if(!_a){ _a=el; _e=el; el->_p=0; el->_n=0; return 1; }
+
+		if(!p){
+			el->_p=0; el->_n=_a; _a->_p=el; _a=el;
+			//if(_a==_e) _e=el; its fail
+			return 1;
+		}
+
+		el->_p=p; el->_n=p->_n;
+		p->_n=el; if(el->_n) el->_n->_p=el; else _e=el;
+		return 1;
+	}
 
 	OMatrix *OMNew(bool r=1){
 		OMatrix *p=new OMatrix;
@@ -794,7 +820,7 @@ int globalerror(const char*line);
 #define MSVMEMORYCONTROLCD(tid, name, size) //\
 //  msv_memoty_control_constr(tid, name, size);
 
-#ifdef WIN32
+#if defined(WIN32) && defined(USEMSV_MEMORYCONTROL)
 #define MSVMEMORYCONTROLC msvcore_memcon_malloc_c(typeid(*this).hash_code(), typeid(*this).name());
 //	msv_memoty_control_constr(typeid(*this).hash_code(), this, typeid(*this).name(), sizeof(*this));
 

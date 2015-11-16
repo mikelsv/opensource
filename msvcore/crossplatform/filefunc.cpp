@@ -59,11 +59,17 @@ int64 SetFilePointer(HFILE fl, int64 pos, int origin=FILE_BEGIN){ return lseek64
 int SetEndOfFile(HFILE hfile){ return fileeof(hfile); }
 
 sstat64 GetFileInfo(VString file){
-	sstat64 stt;// lsstat64 st;
-	TString fl=file;
-	if(_stati64(fl, &stt)) memset(&stt, 0, sizeof(stt));
-	//else{ stat64tomstat(stt, st); }
-    return stt;
+	sstat64 stt;
+
+	while(file.endo() == '/')
+		file.sz --;
+
+	TString fl = file;
+
+	if(!file || _stati64(fl, &stt))
+		memset(&stt, 0, sizeof(stt));
+
+	return stt;
 }
 
 sstat64 GetFileInfo(HFILE hfile){
@@ -88,7 +94,7 @@ int64 GetFileSize(HFILE hfile){
 }
 
 
-bool IsDir(VString path){ sstat64 stt=GetFileInfo(TString(path)); return (stt.st_mode&S_IFDIR)!=0; }
+bool IsDir(VString path){ sstat64 stt = GetFileInfo(TString(path)); return (stt.st_mode&S_IFDIR)!=0; }
 int MkDir(VString file, unsigned int mode=0){ return stdmkdir(TString(file), mode); }
 
 

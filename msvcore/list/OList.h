@@ -5,7 +5,7 @@
 #define OLIST_OPT_DES	2
 #define OLIST_OPT_LIST	4
 
-template <class PROCSTRUCTCN, const int options=OLIST_OPT_CON|OLIST_OPT_DES>
+template <class PROCSTRUCTCN, const int options = OLIST_OPT_CON|OLIST_OPT_DES>
 class OList : public TLock{
 	OMatrixT<OmatrixBlock> data; int datasz;
 	OMatrixT<PROCSTRUCTCN> use;//, free;

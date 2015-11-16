@@ -93,6 +93,11 @@ int main(int args, char* arg[]){
 // #define USEMSV_CONSOLE - use console functions
 // #define USEMSV_CONSOLELINE - use console windows
 
+// Windows and graphics:
+// #define USEMSV_MWND			- use Mwnd Library
+// #define USEMSV_HTMLRENDER	- use HtmlRender class.
+// #define USEMSV_GAMEBOX		- use GameBox class.
+	
 // Memory:
 // #define USEMSV_MEMORYCONTROL - interception malloc() & free()
 // #define USEMSV_INTERCEPT_MALLOC - interception malloc() & free() // don't work
@@ -153,6 +158,10 @@ int main(int args, char* arg[]){
 //#include "list/FString.cpp"
 //#include "list/TString.cpp" // Thread String
 
+// Include Stack String
+#include "SString.h"
+#include "SString.cpp"
+
 #ifdef USEMSV_ITOS
 	#include "crossplatform/itos.cpp"
 #endif
@@ -197,9 +206,17 @@ int main(int args, char* arg[]){
 	//#include "list/OList3.h"
 #endif
 
+#ifdef USEMSV_ALIST
+	#include "list/AList.h"
+#endif
+
 //#ifdef USEMSV_ULIST
 //	#include "list/UList.h"
 //#endif
+
+#ifdef USEMSV_TRIELIST
+	#include "list/TrieList.h"
+#endif
 
 #ifdef USEMSV_AMF
 	#include "proto/amf.cpp"
@@ -211,6 +228,10 @@ int main(int args, char* arg[]){
 
 #ifdef USEMSV_CONSOLE
 	#include "crossplatform/console.cpp"
+#endif
+
+#ifdef USEMSV_MWND
+	#include "MWnd/MWndLib.h"
 #endif
 
 #ifdef USEMSV_CONSOLELINE
@@ -267,7 +288,7 @@ int main(int args, char* arg[]){
 	#include "server/light/light.h"
 #endif
 
-#ifdef USEMSV_ANDOID
+#ifdef USEMSV_ANDROID
 	#include "android/device.cpp"
 #endif
 

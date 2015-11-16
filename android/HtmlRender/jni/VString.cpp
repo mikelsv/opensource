@@ -1,0 +1,1 @@
+#include "../../../msvcore/VString.cpp"

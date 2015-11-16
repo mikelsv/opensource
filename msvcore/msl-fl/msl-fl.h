@@ -2222,7 +2222,7 @@ unsigned char* CjxGetLine(msl_value_template<B> &val, unsigned char *to){
 	
 	msl_value_template<B> *v = val._a;
 	while(v){
-		CjxProtoData &d = (CjxProtoData*)to;
+		CjxProtoData &d = *(CjxProtoData*)to;
 
 		if(v->_a){
 			to += d.SetLineUp(v->k());
@@ -2233,7 +2233,7 @@ unsigned char* CjxGetLine(msl_value_template<B> &val, unsigned char *to){
 		v = v->_n;
 	}
 
-	CjxProtoData &d = (CjxProtoData*)to;
+	CjxProtoData &d = *(CjxProtoData*)to;
 	to += d.SetLineDown();
 
 	return to;
@@ -2249,7 +2249,7 @@ TString CjxGetLine(msl_value_template<B> &val){
 
 	ret.Reserv(sizeof(CjxProtoHead) + rsz);
 
-	CjxProtoHead &head = (CjxProtoHead*) ret.data;
+	CjxProtoHead &head = *(CjxProtoHead*) ret.data;
 	unsigned char *line = ret.data + sizeof(CjxProtoHead);
 
 	CjxGetLine(val, line);

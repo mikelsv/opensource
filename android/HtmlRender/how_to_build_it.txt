@@ -1,0 +1,23 @@
+update:
+C:\Users\MikelSV\AppData\Local\Android\android-sdk\tools\android.bat update project -p ./ --target android-10
+
+ndkbuild:
+..\..\..\..\android\ndk-build
+
+build: 
+ant debug
+
+if java error:
+ant debug -Dbuild.compiler=javac1.7
+
+javah:
+javah -classpath bin/classes;"C:\Users\MikelSV\AppData\Local\Android\android-sdk\platforms\android-10\android.jar" -jni -d jni ru.centerix.HtmlRender.HtmlRender
+
+install:
+adb install -r bin/HtmlRender-debug.apk
+
+log:
+adb logcat | grep HtmlRenderbin
+
+build & install:
+C:\My\android\ndk-build.cmd && ant debug -Dbuild.compiler=javac1.7 && adb install -r bin/HtmlRender-debug.apk

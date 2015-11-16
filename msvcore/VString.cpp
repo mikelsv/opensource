@@ -32,8 +32,8 @@ void VString::delq(){ if(sz>1 && *data=='"' && *(data+sz-1)=='"'){ data++; sz-=2
 
 bool VString::operator!()const{ if (sz>0) return 0; return 1; }
 VString::operator void*()const { return data; }
-inline VString::operator char*()const{ return (char*)data; }
-inline VString::operator unsigned char*()const { return data; }
+VString::operator char*()const{ return (char*)data; }
+VString::operator unsigned char*()const { return data; }
 VString::operator int()const{ if(data) return sz; return 0; }
 char VString::operator[](int index) const{ if(!sz || (unsigned int)index>=sz) return 0; return *(data+index); }
 char VString::operator[](unsigned int index) const{ if(!sz || index>=sz) return 0; return *(data+index); }

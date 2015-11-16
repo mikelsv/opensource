@@ -117,9 +117,11 @@ public:
 };
 
 
-
 class CppLexp{
 	// Defines
+	#define CPPLEXP_PUSHINT(val) int old_ ## val = val;
+	#define CPPLEXP_POPINT(val) val = old_ ## val;
+
 	#define CPPLEXP_PUSHSTR(cls, val) cls old_ ## val = val;
 	#define CPPLEXP_POPSTR(cls, val) val = (cls)old_ ## val;
 
@@ -189,6 +191,9 @@ protected:
 			if(!AnalysLine(ln, to, ';', ecode))
 				return 0;
 
+			if(ln < to && *ln ==';')
+				LexpAdd(CXXLEXPT_END, VString(ln, 1));
+
 			ln ++;
 
 			CPPLEXP_POPSTR(CppLexpD*, lexp_this);
@@ -212,60 +217,16 @@ protected:
 
 		while(ln < to){
 			// Name
-			if(*ln >= 'a' && *ln <= 'z' || *ln >= 'A' && *ln <= 'Z' || *ln == '_'/* || *ln == '#' && !do_opt_ifdef*/){
+			if(*ln >= 'a' && *ln <= 'z' || *ln >= 'A' && *ln <= 'Z' || *ln == '_' || *ln == '$' /* || *ln == '#' && !do_opt_ifdef*/){
 				lln = ln ++;
 
-				while(ln < to && (*ln >= 'a' && *ln <= 'z' || *ln >= 'A' && *ln <= 'Z' || *ln == '_' || *ln >= '0' && *ln <= '9'))
+				while(ln < to && (*ln >= 'a' && *ln <= 'z' || *ln >= 'A' && *ln <= 'Z' || *ln == '_' || *ln == '$' || *ln >= '0' && *ln <= '9'))
 					ln ++;
 
+				if(VString(lln, ln - lln) == "GetCurrentThread")
+					int rty = 67;
+
 				CppLexpD *lxp = LexpAdd(CXXLEXPT_NAME, VString(lln, ln - lln));
-
-				// Define
-				/*if(*lln == '#'){
-					lxp->type = CXXLEXPT_DEF;
-
-
-					// ( params )
-					/*if(ln < to && *ln == '('){						
-						lexp_this = lxp;
-						//LexpAddUp(CXXLEXPT_DEFP);
-
-						if(!AnalysLine(++ln, to, ')'))
-							return 0;
-
-						//LexpAddUpEnd();
-						//CPPLEXP_POPSTR(CppLexpD*, lexp_this);
-
-						if(ln >= to || *ln != ')'){
-							SetError("Close ')' not found");
-							return 0;
-						}
-					}* /
-
-					// value
-					//if(ln < to && *ln == '('){
-						//CPPLEXP_PUSHSTR(CppLexpD*, lexp_this);
-					//lexp_this = lxp;
-					//lexp_this = LexpAddUp(CXXLEXPT_BLOCK);
-
-					do_opt_ifdef = 1;
-
-					if(!AnalysLine(++ln, to, '\n'))
-						return 0;
-
-					do_opt_ifdef = 0;
-
-						//LexpAddUpEnd();
-					CPPLEXP_POPSTR(CppLexpD*, lexp_this);
-
-						//if(ln >= to || *ln != '\n'){
-						//	SetError("End of line not found");
-						//	return 0;
-						//}
-					//}
-				}
-				*/
-
 				continue;
 			}
 			// Comments
@@ -393,6 +354,7 @@ protected:
 			else if(*ln == '{'){
 				CPPLEXP_PUSHSTR(CppLexpD*, lexp_this);
 				lexp_this = LexpAdd(CXXLEXPT_BLOCK, VString(ln, 1));
+				lln = ln;
 
 				if(!AnalysMulti(++ln, to, '}'))
 					return 0;
@@ -460,6 +422,11 @@ protected:
 			// End code
 			else if(*ln == ';'){
 				LexpAdd(CXXLEXPT_END, VString(ln, 1));
+			}
+
+			// Special sumbol in WinNt.h
+			else if(*ln == 12){
+				// ignore
 			}
 			// Error
 			else{
@@ -598,9 +565,13 @@ public:
 	HLString modcode; // Temp for #else
 	int modpos;
 
+	// Options
+	int pragma_once;
+
 	CppXccFile(){
 		filesize = 0;
 		modpos = 0;
+		pragma_once = 0;
 	}
 
 };
@@ -621,6 +592,8 @@ class CppXcc{
 	// Options
 	int opt_print;
 	int opt_replace_enable;
+	VString opt_flist; // full listing
+	VString opt_ipath; // include path
 
 	// Process
 	CppXccFile * this_file;
@@ -630,6 +603,8 @@ class CppXcc{
 	int proc_ifdef_level; // ifdef level
 	int proc_ifdef_activate; // ifdef level for proc_active_code => 1
 	int proc_ifdef_dend; // double end
+
+	HLString0 proc_flist;
 
 	// Error
 	HLString0 error, warning;
@@ -668,6 +643,14 @@ public:
 		opt_replace_enable = val;
 	}
 
+	void SetEnableFullList(VString file = VString()){
+		opt_flist = file;
+	}
+
+	void SetIncludePath(VString path = VString()){
+		opt_ipath = path;
+	}
+
 	void SetPrint(int val){
 		opt_print = val;
 	}
@@ -676,19 +659,31 @@ public:
 		if(first)
 			InitProc();
 
-		if(opt_print & MSVXCC_PRINT_ANALYSFILE){
-			int is = IsFile(file);
+		int is = IsFile(file);
+
+		if(opt_print & MSVXCC_PRINT_ANALYSFILE)			
 			print(HLString() + "CppXcc Analys file: " + file + (is ? " OK " : " FAIL(File not found)") + "\r\n");
+
+		if(opt_flist){
+			proc_flist + "// CppXcc Analys file: "+ file + "\r\n";
+			//if(!is)
+				//proc_flist + "// NOT FOUND" "\r\n" + "#include <" + file + ">\r\n\r\n";
 		}
 
 		CppXccFile* fl = GetFile(file);
+		int ret;
+
 		if(!fl){
 			fl = AddFile(file);
 			fl->filedata = LoadFile(file);
 			fl->filesize = fl->filedata;
+			ret = AnalysFile(fl);
+		} else{
+			if(fl->pragma_once)
+				return 1;
+			ret = AnalysFile(fl, 1);
 		}
 
-		int ret = AnalysFile(fl);
 
 		if(first && proc_ifdef_level){
 			if(proc_ifdef_level)
@@ -699,12 +694,13 @@ public:
 		if(first)
 			CheckFiles();
 
-		return ret;
+		return is ? ret : -1;
 	}
 
-	int AnalysFile(CppXccFile *fl){
+	int AnalysFile(CppXccFile *fl, int again = 0){
 		this_file = fl;
 
+		if(!again)
 		if(!fl->lexp.Analys(fl->filename, fl->filedata)){
 			SetError(HLString() + "CppXcc Lexp:" + fl->lexp.GetError());
 			return 0;
@@ -724,16 +720,16 @@ public:
 				if(!AnalysDefine(lexp))
 					return 0;
 			}else{
-				if(proc_replace_do){
-					int rc = ReplaceCode(lexp);
+				if(proc_active_code && (proc_replace_do || opt_flist)){
+					int rc = SelReplaceCode(lexp);
 
 					if(lexp->_a){
 						AnalysLexp(lexp->_a);
-
-						if(lexp->type == CXXLEXPT_UP){
-							ReplaceCodeClose(lexp);
-						}
 					}
+
+					if(lexp->type == CXXLEXPT_UP || lexp->type == CXXLEXPT_BLOCK || lexp->type == CXXLEXPT_ARR){
+						SelReplaceCodeClose(lexp);
+					}					
 
 					if(rc == 2){
 						lexp = lexp->n()->n();
@@ -801,13 +797,21 @@ public:
 					ls + l->val;
 				l = l->_n;
 			}
+
+			ilink.Link(this_file->filename);
+			TString path = DefIncludeGetPath(ilink, ls.String());
 			
 			// Analys
-			ilink.Link(this_file->filename);
-			AnalysFile(HLString() + ilink.GetProtoDomainPath() + ls.String(), 0);
+			int af = AnalysFile(path, 0);
 
 			CPPLEXP_POPSTR(CppXccFile*, this_file);
 
+			if(opt_flist){
+				if(af == -1){
+					proc_flist + "// NOT FOUND" "\r\n" + "#include <" + ls.String() + ">\r\n\r\n";
+				}
+				proc_flist + "\r\n// Return to: '" + this_file->filename + "'\r\n\r\n";
+			}
 		} else if(dname == "error"){
 			if(!proc_active_code)
 				return 1;
@@ -817,12 +821,35 @@ public:
 		} else if(dname == "pragma"){
 			// ignore
 
+			if(lexp && lexp->val == "once")
+				this_file->pragma_once = 1;
+
 		} else{
 			SetLexpError(HLString() + "Unknown define: " + dname, lexp);
 			return 0;
 		}
 
 		return 1;
+	}
+
+	TString DefIncludeGetPath(ILink &link, VString p){
+		TString t;
+		
+		if(IsFile(p))
+			return p;
+
+		if(IsFile(t.Add(link.GetProtoDomainPath(), p)))
+			return t;
+		
+		VString line = opt_ipath;
+		while(line){
+			VString l = PartLine(line, line, ";");
+
+		if(IsFile(t.Add(l, "/", p)))
+			return t;
+		}
+
+		return p;
 	}
 
 	int AnalysDefineDefine(CppLexpD *plexp, CppLexpD *lexp){
@@ -928,29 +955,10 @@ public:
 	}
 
 	int AnalysDefineIf(CppLexpD *lexp){
+		int ret = AnalysDefineIfCheck(lexp);
 
-		int count = 0;
-		int ret;
-
-		for(int i = 0; i < 2; i++){
-			ret = AnalysDefineIfCheck(lexp, i, count);
-
-			if(ret >= 0)
-				return ret; 
-
-			//if(!i && !count && lexp->tmp != -1){
-			//	if(lexp->_n){
-			//		SetLexpError("#if bad value", lexp);
-			//		return 0;
-			//	}
-
-			//	return lexp->tmp;
-			//}
-		}
-
-		if(count != 1){
-			SetLexpError("#if bad value", lexp);					
-		}
+		if(ret < 0)
+			SetLexpError("#if bad value", lexp);
 
 		return ret;
 	}
@@ -973,43 +981,118 @@ public:
 	int GetInt(VString val){
 		if(val.incompare("0x"))
 			return stoi(val.rchar() + 2, val.sz - 2, 16);
-		else if(val.incompare("0"))
-			return stoi(val, val, 8);
+		else
+			if(val.incompare("0"))
+				return stoi(val, val, 8);
 		return val.toi();
 	}
 
-	int AnalysDefineIfCheck(CppLexpD *lexp, int optype, int &count){
-		int tcount = 0, ret = -1;
+	int AnalysDefineIfCheck(CppLexpD *plexp){
+		for(int optype = 0; optype < 4; optype ++){
+			CppLexpD *lexp = plexp;
+			int tcount = 0, ret = -1;
 
-		while(lexp){
-			if(lexp->_a && lexp->tmp == -1){
-				ret = AnalysDefineIfCheck(lexp->_a, optype, count);
-				if(ret >= 0)
-					lexp->tmp = ret;
+			while(lexp){
+				if(optype == 0){
+					lexp->tmp = -1;
+
+					if(lexp->type == CXXLEXPT_COMMENT)
+						lexp->tmp = -2;
+					
+
+					if(lexp->_a){
+						lexp->tmp = ret = AnalysDefineIfCheck(lexp->_a);
+						if(ret < 0)
+							return ret;
+					}
+
+					if(lexp->type == CXXLEXPT_NAME || lexp->type == CXXLEXPT_INT){
+						if(lexp->val == "defined" && lexp->_n && lexp->_n->type == CXXLEXPT_UP && lexp->n()->a() && lexp->n()->a()->type == CXXLEXPT_NAME){
+							CppXccDefine *def = GetDefine(lexp->n()->a()->val);
+							lexp->tmp = ret = def != 0;
+							lexp->_n->tmp = -2;
+
+							tcount ++;
+							lexp = lexp->n()->n();
+							continue;
+						} else{
+							CppXccDefine *def = GetDefine(lexp->val);
+							lexp->tmp = ret = def ? 1 : 0;
+						}
+					}
+				}
+				else if(optype == 1){
+					if(lexp->tmp == -1 && lexp->type == CXXLEXPT_OP && lexp->ext == MCCOP_LNEG && lexp->_n && lexp->_n->tmp >= 0){
+						lexp->tmp = ret = !lexp->_n->tmp;
+						lexp->_n->tmp = -2;
+					}
+				} else if(optype == 2){
+					if((lexp->type == CXXLEXPT_OP && lexp->tmp == -1) &&
+					( lexp->ext == MCCOP_MORE || lexp->ext == MCCOP_LESS || lexp->ext == MCCOP_MOREC || lexp->ext == MCCOP_LESSC || lexp->ext == MCCOP_CMPC || lexp->ext == MCCOP_CMPNC)){
+					
+					ret = AnalysDefineIfCheckOp(lexp);
+					if(ret < 0)
+						return -1;
+
+					tcount --;
+					}
+				} else if(optype == 3){
+					if((lexp->type == CXXLEXPT_OP && lexp->tmp == -1) &&
+					( lexp->ext == MCCOP_DAND || lexp->ext == MCCOP_DOR)){
+					
+					ret = AnalysDefineIfCheckOp(lexp);
+					if(ret < 0)
+						return -1;
+
+					tcount --;
+					}
+				}
+
+				if(lexp->tmp >= -1)
+					tcount ++;
+
+				lexp = lexp->_n;
 			}
+
+			if(tcount == 1 && ret >= 0)
+				return ret;
+		}
+
+		return -1;
+
+#ifdef IAM_YOU_CODE___NOOOOOOO
+		while(lexp){
 
 			// Clear state && count
 			if(optype == 0){
 				if(lexp->type == CXXLEXPT_NAME || lexp->type == CXXLEXPT_INT){
-					CppXccDefine *def = GetDefine(lexp->val);
-					lexp->tmp = ret = def ? 1 : 0;
-
 					if(lexp->val == "defined" && lexp->_n && lexp->_n->type == CXXLEXPT_UP && lexp->n()->a() && lexp->n()->a()->type == CXXLEXPT_NAME){
 						CppXccDefine *def = GetDefine(lexp->n()->a()->val);
 						lexp->tmp = ret = def != 0;
 						lexp->_n->tmp = -2;
 
 						count ++;
+						tcount ++;
 						lexp = lexp->n()->n();
 						continue;
+					} else{
+						CppXccDefine *def = GetDefine(lexp->val);
+						lexp->tmp = ret = def ? 1 : 0;
 					}
-
 				} else
-					lexp->tmp = -1;				
+					lexp->tmp = -1;
 				count ++;
 			}
-			//  operations
+			// !
 			if(optype == 1){
+				if(lexp->tmp == -1 && lexp->type == CXXLEXPT_OP && lexp->ext == MCCOP_LNEG && lexp->_n && lexp->_n->tmp >= 0){
+					count --;
+					lexp->tmp = ret = !lexp->_n->tmp;
+					lexp->_n->tmp = -2;
+				}
+			}
+			//  operations
+			if(optype == 2){
 				if((lexp->type == CXXLEXPT_OP && lexp->tmp == -1) &&
 					( lexp->ext == MCCOP_MORE || lexp->ext == MCCOP_LESS || lexp->ext == MCCOP_MOREC || lexp->ext == MCCOP_LESSC || lexp->ext == MCCOP_CMPC || lexp->ext == MCCOP_CMPNC || lexp->ext == MCCOP_DAND || lexp->ext == MCCOP_DOR )){
 					
@@ -1063,16 +1146,55 @@ public:
 			lexp = lexp->_n;
 		}
 
-		if(!tcount){
-			if(ret == -1){
-				SetLexpError("#if bad value", lexp);
-				return 0;
-			}
-
+		if(tcount == 1 && ret >= 0)
 			return ret;
-		}
 
 		return -1;
+#endif
+	}
+
+	int AnalysDefineIfCheckOp(CppLexpD *lexp){
+		CppLexpD *l = lexp->_p, *r = lexp->_n;
+		int64 ir, il;
+		int ret;
+
+		while(l){
+			if(l->tmp >= 0)
+				break;
+			l = l->_p;
+		}
+
+		while(r){
+			if(r->tmp >= 0)
+				break;
+			r = r->_n;
+		}
+
+		if(!l || !r){
+			SetLexpError("#if bad operations", lexp);
+			return -1;
+		}
+
+		il = AnalysDefineIfDef(l);
+		ir = AnalysDefineIfDef(r);
+
+		switch(lexp->ext){
+			case MCCOP_MORE: ret = il > ir; break;
+			case MCCOP_LESS: ret = il < ir; break;
+			case MCCOP_MOREC: ret = il >= ir; break;
+			case MCCOP_LESSC: ret = il <= ir; break;
+			case MCCOP_CMPC: ret = il == ir; break;
+			case MCCOP_CMPNC: ret = il != ir; break;
+			case MCCOP_DAND: ret = il && ir; break;
+			case MCCOP_DOR: ret = il || ir; break;
+			default: SetLexpError("#if operaion not found", lexp); return -1; break;
+		}
+
+		l->tmp = -2;
+		r->tmp = -2;
+		lexp->tmp = ret;
+
+		return ret;
 	}
 
 	// Replace
@@ -1101,19 +1223,70 @@ public:
 		this_file->modpos = lexp->val.uchar() - this_file->filedata.data;
 	}
 
-	int ReplaceCode(CppLexpD *lexp){
-		int ret = ReplaceCodeIfDef(lexp, this_file->modcode);
-		if(ret != -1)
+
+	int SelReplaceCode(CppLexpD *lexp){
+		HLString ls;
+		int ret = ReplaceCodeIfDef(lexp, ls);
+		
+		if(ret != -1){
+			if(proc_replace_do)
+				this_file->modcode + ls;
+			if(opt_flist)
+				proc_flist + ls.String();
+
 			return ret;
+		}
 
 		if(lexp->type == CXXLEXPT_COMMENT){
 		} else if(lexp->type == CXXLEXPT_CODELINE){
-			this_file->modcode + "\r\n";
-		} else {				
-			this_file->modcode + " " + lexp->val;
+
+			if(proc_replace_do)
+				if(this_file->modcode.Size() && *this_file->modcode[this_file->modcode.Size() - 1] != '\n')
+					this_file->modcode + "\r\n";
+
+			if(opt_flist)
+				if(proc_flist.Size() && *proc_flist[proc_flist.Size() - 1] != '\n')
+					proc_flist + "\r\n";
+
+		} else if(lexp->type == CXXLEXPT_TEXT){
+			if(proc_replace_do)
+				this_file->modcode + "\"" + lexp->val + "\"";
+			if(opt_flist)
+				proc_flist + + "\"" + lexp->val + "\"";
+		} else if(lexp->type == CXXLEXPT_CHAR){
+			if(proc_replace_do)
+				this_file->modcode + "'" + lexp->val + "'";
+			if(opt_flist)
+				proc_flist + + "'" + lexp->val + "'";
+		} else {
+			if(proc_replace_do)
+				this_file->modcode + " " + lexp->val;
+			if(opt_flist)
+				proc_flist + " " + lexp->val;
 		}
 
+		if(lexp->val == "GetCurrentThread")
+			int rety  = 567;
+
 		return 1;
+	}
+
+	void SelReplaceCodeClose(CppLexpD *lexp){
+		VString add;
+
+		if(lexp->type == CXXLEXPT_UP)
+			add = " )";
+		else if(lexp->type == CXXLEXPT_BLOCK)
+			add = " }";
+		else if(lexp->type == CXXLEXPT_ARR)
+			add = " ]";
+
+		if(add){
+			if(proc_replace_do)
+				this_file->modcode + add;
+			if(opt_flist)
+				proc_flist + add;
+		}
 	}
 
 class CxxReplaceData{
@@ -1122,9 +1295,13 @@ public:
 	CppXccDefine *def;
 	CppLexpD *pars;
 
+	int opt_nodef;
+	int opt_nos;
+
+	//int *opt_newline;
+
 	// Temp
 	HLString ls;
-
 
 	CppLexpD* NewLexp(){
 		return (CppLexpD*)ls.Add(0, sizeof(CppLexpD), 1);
@@ -1132,13 +1309,25 @@ public:
 
 };
 
-	int ReplaceCodeIfDef(CppLexpD *lexp, HLString &ls, CxxReplaceData *rep = 0){
-		if(lexp->type == CXXLEXPT_NAME){			
+	int ReplaceCodeIfDef(CppLexpD *lexp, /*CppLexpD *lpar,*/ HLString &ls, CxxReplaceData *rep = 0){
+		if(lexp->type == CXXLEXPT_NAME){
 			CppXccDefine *def = GetDefine(lexp->val);
 
 			// if ()
 			if(def && (!def->param || lexp->_n && lexp->_n->type == CXXLEXPT_UP))
-				return ReplaceCodeDef(lexp, def, ls, rep);
+				return ReplaceCodeDef(lexp, lexp->_n, def, ls, rep);
+		}
+
+		return -1;
+	}
+
+	int ReplaceCodeIfDef(CppLexpD *lexp, CppLexpD *lpar, HLString &ls, CxxReplaceData *rep = 0){
+		if(lexp->type == CXXLEXPT_NAME){
+			CppXccDefine *def = GetDefine(lexp->val);
+
+			// if ()
+			if(def && (!def->param || lpar && lpar->type == CXXLEXPT_UP))
+				return ReplaceCodeDef(lexp, lpar, def, ls, rep);
 		}
 
 		return -1;
@@ -1150,6 +1339,9 @@ public:
 		while(lexp){
 			if(lexp->type == CXXLEXPT_OP && lexp->ext == MCCOP_DEFSUB)
 				break;
+			//else if(lexp->type == CXXLEXPT_NAME)
+			//	if(GetDefine(lexp->val))
+			//		break;
 
 			lexp = lexp->_n;
 		}
@@ -1182,11 +1374,20 @@ public:
 				int f = rep._n ? ReplaceCodeDefRGetVal(*rep._n, lexp, fr, to) : 0;
 
 				CppXccDefine *def = GetDefine(!f ? lexp->val : fr->val);
-				par = ReplaceCodeDefParAdd(rep, def->value, par);
-
-				lexp = lexp->_n;
-				continue;
+				if(def){
+					par = ReplaceCodeDefParAdd(rep, def->value, par);
+					lexp = lexp->_n;
+					continue;
+				}
 			}
+			//else if(lexp->type == CXXLEXPT_NAME){
+			//	CppXccDefine *def = GetDefine(lexp->val);
+			//	if(def){
+			//		par = ReplaceCodeDefParAdd(rep, def->value, par);
+			//		lexp = lexp->_n;
+			//		continue;
+			//	}
+			//}
 
 			n = rep.NewLexp();
 			if(par)
@@ -1205,22 +1406,35 @@ public:
 		return par;
 	}
 
-	int ReplaceCodeDef(CppLexpD *lexp, CppXccDefine *def, HLString &ls, CxxReplaceData *rep = 0){
-		CppLexpD *lpar = 0;
-		if(lexp->_n && lexp->_n->type == CXXLEXPT_UP){
-			lpar = lexp->_n->_a;
-		}
+	int ReplaceCodeDef(CppLexpD *lexp, CppLexpD *lpar, CppXccDefine *def, HLString &ls, CxxReplaceData *rep = 0){
+		CppLexpD *l = 0;
+		//if(lexp->_n && lexp->_n->type == CXXLEXPT_UP){
+		//	lpar = lexp->_n->_a;
+		//}
+
+		if(lpar && lpar->_a)
+			lpar = lpar->_a;
 
 		ls + " ";
 
 		CxxReplaceData nrep;
 		nrep.def = def;
 		nrep._n = rep;
+		nrep.opt_nodef = 0;
+		nrep.opt_nos = 0;
+//		nrep.opt_newline = 0;
+
+		//int opt_newline = 0;
+		//if(rep)
+		//	nrep.opt_newline = rep->opt_newline;
+		//else
+		//	nrep.opt_newline = &opt_newline;
 
 		lpar = ReplaceCodeDefPar(nrep, lpar);
-		nrep.pars = lpar;		
+		nrep.pars = lpar;
 		
-		ReplaceCodeDefR(nrep, ls, lpar, def->param->a(), def->value);
+		
+		ReplaceCodeDefR(nrep, ls, l, 0, def->value); // lpar -> 0,  def->param->a() -> 0
 
 		//this_file->modcode + " " + ls;
 
@@ -1248,6 +1462,8 @@ public:
 			if(lexp->val == "__VA_ARGS__"){
 				fval = "...";
 				va = 1;
+			} else if(lexp->val == "__VA_ALL_ARGS__"){
+				va = 2;
 			} else
 				fval = lexp->val;
 
@@ -1259,6 +1475,11 @@ public:
 					pos ++;
 
 				d = d->_n;
+			}
+
+			if(va == 2){
+				pos = 0;
+				d = lexp;
 			}
 
 			if(!d){
@@ -1281,6 +1502,7 @@ public:
 						fr = p->_n;
 					else if(pos == -1 && !va){
 						to = p;
+						break;
 					}
 				}
 
@@ -1301,8 +1523,8 @@ public:
 		return 1;
 	}
 
-	void ReplaceCodeDefR(CxxReplaceData &rep, HLString &ls, CppLexpD *par, CppLexpD *dpar, CppLexpD *lexp, CppLexpD *tolexp = 0){
-		int nos = 0; // no space
+	void ReplaceCodeDefR(CxxReplaceData &rep, HLString &ls, CppLexpD *&par, CppLexpD *dpar, CppLexpD *lexp, CppLexpD *tolexp = 0){
+		//int nos = 0; // no space
 		//int ist = 0; // is text
 		CppLexpD *ist = 0; // is text
 		CppLexpD *fr, *to;
@@ -1310,51 +1532,64 @@ public:
 		while(lexp != tolexp){
 			int wr = 0;
 
-			if(lexp->type == CXXLEXPT_NAME){				
-				if(ReplaceCodeDefRGetVal(rep, lexp, fr, to)){
-					ReplaceCodeDefR(rep, ls, par, dpar, fr, to);
+			if(lexp->type == CXXLEXPT_NAME){
+				// is param
+				if(!rep.opt_nodef && ReplaceCodeDefRGetVal(rep, lexp, fr, to)){
+					int old_opt_nodef = rep.opt_nodef;
+					//rep.opt_nodef = 1;
+
+					CppLexpD *npar = lexp->_n != tolexp && lexp->_n->type == CXXLEXPT_UP ? lexp->_n : 0;
+
+					ReplaceCodeDefR(rep, ls, npar, dpar, fr, to); // par -> 0
+					
+					rep.opt_nodef = old_opt_nodef;
 					wr = 1;
 
-					//while(fr && fr!= to){
-					//	if(fr->type == CXXLEXPT_NAME && ReplaceCodeIfDef(fr, this_file->modcode, &rep)){
-					//	
-					//	} else
-					//		WriteLexp(ls, fr, nos);
-					//	fr = fr->_n;
-					//}
-					//wr = 1;
+					if(npar){
+						if(lexp->_n == tolexp)
+							break;
+						
+						lexp = lexp->n()->n();
+						continue;
+					}
+				}
+
+				if(!wr){
+					// is define
+					int ret = ReplaceCodeIfDef(lexp, par ? par : (lexp->_n != tolexp && lexp->_n->type == CXXLEXPT_UP ? lexp->_n : 0), ls, &rep);
+					if(ret == 2){
+						lexp = lexp->_n;
+						if(lexp == tolexp)
+							break;
+						lexp = lexp->_n;
+						continue;
+					} else if(ret == -1){
+						if(par)
+							par = 0;					
+					} else
+						wr = 1;
 				}
 			}
-
-			int ret = ReplaceCodeIfDef(lexp, this_file->modcode, &rep);
-			if(ret == 2){
-				lexp = lexp->_n;
-				if(lexp == tolexp)
-					break;
-				lexp = lexp->_n;
-				continue;
-			} else if(ret != -1)
-				wr = 1;
 
 			if(!wr && lexp->type == CXXLEXPT_OP){
 				if(lexp->ext == MCCOP_DEF){
 					ls + " \"";
 					ist = lexp;
-					nos = 1;
+					rep.opt_nos = 1;
 					wr = 1;
 				} else if(lexp->ext == MCCOP_DEFADD){
-					nos = 1;
+					rep.opt_nos = 1;
 					wr = 1;
 				}
 				else if(lexp->ext == MCCOP_USEDEF){
 					ls + "#";
 					wr = 1;
-					nos = 1;
+					rep.opt_nos = 1;
 				}
 			}
 
 			if(!wr)
-				WriteLexp(ls, lexp, nos);
+				WriteLexp(ls, lexp, rep.opt_nos);
 
 			if(lexp->_a){
 				ReplaceCodeDefR(rep, ls, par, dpar, lexp->_a);
@@ -1383,16 +1618,16 @@ public:
 		else
 			ls + " ";
 
-		if(lexp->type == CXXLEXPT_TEXT)
+		if(lexp->type == CXXLEXPT_COMMENT){
+			//ls + "//" + lexp->val + "\r\n;
+		}
+		else if(lexp->type == CXXLEXPT_TEXT)
 			ls + "\"" + lexp->val + "\"";
+		else if(lexp->type == CXXLEXPT_OP && lexp->val == ":::::"){
+			ls + "\r\n";
+		}
 		else
 			ls + lexp->val;
-	}
-
-	void ReplaceCodeClose(CppLexpD *lexp){
-		if(lexp->type == CXXLEXPT_UP){
-			this_file->modcode + " )";
-		}
 	}
 
 	// Files
@@ -1427,6 +1662,13 @@ public:
 		return ;
 	}
 
+	void SaveFullListing(){
+		if(!opt_flist)
+			return ;
+
+		SaveFile(opt_flist, proc_flist.String());
+	}
+
 	// Defines
 	CppXccDefine* GetDefine(VString name){
 		for(int i = 0; i < defines.Size(); i++){
@@ -1438,6 +1680,10 @@ public:
 	
 	CppXccDefine * SetDefine(VString name, CppLexpD *par = 0, CppLexpD *val = 0){
 		CppXccDefine *def = GetDefine(name);
+
+		if(name == "__crt_typefix" || def && def->name == "__crt_typefix")
+			int ert = 4564;
+
 		if(!def){
 			def = defines.Add();
 			def->name = name;

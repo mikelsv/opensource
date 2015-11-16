@@ -116,8 +116,6 @@ public:
 
 };
 
-
-
 void RsaCreateKeys(TString &pub, TString &sec){
 	// generate keys
 	RSA *rsa = RSA_generate_key(2048, RSA_F4, NULL, NULL);

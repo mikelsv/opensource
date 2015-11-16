@@ -1,9 +1,11 @@
 #include "msvdefine.h"
 #include "VString.h"
 #include "MString.h"
+//#include "SString.h"
 #include "TString.h"
 #include "msvdefine_m.h"
 
+//#include "SString.cpp"
 #include "TString.cpp"
 
 // + global function

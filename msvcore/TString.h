@@ -1,5 +1,4 @@
 // TString by MikelSV
-
 // 0.0.0.1  19.10.2015 13:03
 
 class TString : public VString{

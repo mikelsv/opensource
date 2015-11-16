@@ -15,6 +15,8 @@ inline int rtms(const MString &line, const MString fr, int &pos, bool res=0);
 template<int stacksize>
 class HLStringX : public UList<unsigned char, 0, stacksize>{
 public:
+	HLStringX(){ }
+	HLStringX(HLStringX &ls){ *this + ls; }
 
 // emulate LString, pleasse DON't use it
 	void add(const char data);
