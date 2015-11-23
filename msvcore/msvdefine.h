@@ -90,14 +90,12 @@ extern int _TSYS;
 	#include <errno.h>
 	#include <dirent.h>
 	#include <netdb.h>
-	#include <pthread.h>
 	#include <sys/ioctl.h>
 	#include <sys/resource.h>
 	#include <sys/socket.h>
 	#include <sys/utsname.h>
 	#include <sys/wait.h>
 	#include <termios.h>
-	#include <unistd.h>
 	#include <utime.h>
 
 	#define memcpy memmove
@@ -161,6 +159,11 @@ extern int _TSYS;
 #endif
 // ~ OS Include
 
+#ifdef __GNUC__
+	#include <pthread.h>
+	#include <unistd.h>
+#endif
+
 
 // Memory Control
 #include <typeinfo>
@@ -214,6 +217,12 @@ bool MemConUnLock();
 
 void msvcore_memcon_print();
 int msvcore_memcon_print_ltime = 0;
+
+#if defined(WIN32) && defined(USEMSV_INTERCEPT_MALLOC)
+#include "DbgHelp.h"
+#include <WinBase.h>
+#pragma comment(lib, "Dbghelp.lib")
+#endif
 
 
 // Stack

@@ -9,7 +9,7 @@ SStringX<stacksize>::~SStringX(){ data = 0; sz = 0; }
 
 
 template<int stacksize>
-void SStringX<stacksize>::Init(){ StringDel(data); data = 0; sz = 0; }
+void SStringX<stacksize>::Init(){ /*StringDel(data);*/ data = 0; sz = 0; }
 
 template<int stacksize>
 void SStringX<stacksize>::StringNew(const void *line){
@@ -336,7 +336,10 @@ SStringX<stacksize>& SStringX<stacksize>::Reserv(int size, int p){
 	memset(data + m, p, sz - m);
 	data[size] = 0;
 
-	StringDel(odata);
+	if(data != mdata.data && mdata)
+		mdata.Clean();
+
+	//StringDel(odata);
 	return *this;
 }
 

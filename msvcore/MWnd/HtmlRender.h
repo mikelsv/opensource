@@ -19,6 +19,12 @@ Versions HtmlRenderVer[]={
 #define HTMLRENT_TEXT	1
 // And tags
 #define HTMLRENT_BR		2
+#define HTMLRENT_P		3
+#define HTMLRENT_A		4
+#define HTMLRENT_FONT	5
+#define HTMLRENT_LEFT	6
+#define HTMLRENT_CENTER	7
+#define HTMLRENT_RIGHT	8
 
 
 // Render element. 
@@ -31,6 +37,7 @@ public:
 	int type;
 	VString text;
 	unsigned int font_size;
+	MRGB font_color;
 
 	// Render data
 	int sx, sy;
@@ -58,6 +65,104 @@ public:
 	//}
 
 };
+
+// Render tag info
+struct HtmlRenderTagInfo{
+	HtmlRenderTagInfo *ti;
+	HtmlRenderEl *el;
+
+	//int is_tag_a;
+
+	HtmlRenderTagInfo(){
+		ti = 0;
+		el = 0;
+
+//			is_tag_a = 0;
+	}
+
+	//bool IsTagA(){
+	//	HtmlRenderTagInfo *t = this;
+
+	//	while(t){
+	//		if(t->el && t->el->type == HTMLRENT_A)
+	//			return 1;
+
+	//		t = t->ti;
+	//	}
+
+	//	return 0;
+	//}
+
+	HtmlRenderTagInfo* IsTag(int type){
+		HtmlRenderTagInfo *t = ti;
+
+		while(t){
+			if(t->el && t->el->type == type)
+				return t;
+
+			t = t->ti;
+		}
+
+		return 0;
+	}
+
+	int IsTagAlign(){
+		HtmlRenderTagInfo *t = ti;
+
+		while(t){
+			if(t->el && (t->el->type == HTMLRENT_LEFT || t->el->type == HTMLRENT_CENTER || t->el->type == HTMLRENT_RIGHT))
+				return t->el->type;
+
+			t = t->ti;
+		}
+
+		return 0;
+	}
+
+	//bool IsTagLeft(){
+	//	return IsTag(HTMLRENT_LEFT);
+	//}
+
+	//bool IsTagRight(){
+	//	return IsTag(HTMLRENT_RIGHT);
+	//}
+
+	//bool IsTagCenter(){
+	//	return IsTag(HTMLRENT_CENTER);
+	//}
+
+	MRGB GetTagFontColor(){
+		HtmlRenderTagInfo *t = ti;
+
+		while(t){
+			if(t->el && t->el->type == HTMLRENT_A)
+				return "0000FF";
+			else if(t->el && t->el->type == HTMLRENT_FONT){
+				return t->el->font_color;
+			}
+
+			t = t->ti;
+		}
+
+		return MRGB(0, 0, 0);
+	}
+
+	int GetTagFontSize(){
+		HtmlRenderTagInfo *t = ti;
+
+		while(t){
+			if(t->el && t->el->type == HTMLRENT_FONT){
+				return t->el->font_size;
+			}
+
+			t = t->ti;
+		}
+
+		return 0;
+	}
+
+};
+
 
 #define HTMLRENDERT_FILE	1
 #define HTMLRENDERT_MEM		2
@@ -101,10 +206,10 @@ public:
 protected:
 	TString RenderProc(int type, VString data, VString to, TString *tomem = 0){
 		// Html parse
-		xml.ReadXML(data);
+		xml.ReadHtml(data);
 
 		// Html to render struct
-		HtmlToRender(xml, &rel);
+		HtmlToRender(xml.GetData()->a(), &rel);
 
 		// Count rects
 		RenderAnalysRect(ipe, &rel);
@@ -135,7 +240,28 @@ protected:
 			HtmlRenderEl *r = data.New(rel);
 
 			if(el->key){ // tag
-
+				if(el->key.compareu("br")){
+					r->type = HTMLRENT_BR;
+				}
+				else if(el->key.compareu("p")){
+					r->type = HTMLRENT_P;
+				}
+				else if(el->key.compareu("a")){
+					r->type = HTMLRENT_A;
+				}
+				else if(el->key.compareu("font")){
+					r->type = HTMLRENT_FONT;
+					HtmlToRenderTagFont(el, r);					
+				}
+				else if(el->key.compareu("center")){
+					r->type = HTMLRENT_CENTER;
+				}
+				else if(el->key.compareu("left")){
+					r->type = HTMLRENT_LEFT;
+				}
+				else if(el->key.compareu("right")){
+					r->type = HTMLRENT_RIGHT;
+				}
 			}
 
 			if(el->val){ // text
@@ -151,12 +277,74 @@ protected:
 		return ;
 	}
 
-	void RenderAnalysRect(MWndIPE &ipe, HtmlRenderEl *el){
-		// Add in HtmlRenderEl sx, sy and count text rect
+	// Html to Render. Tag font.
+	void HtmlToRenderTagFont(XDataEl *el, HtmlRenderEl *rel){
+		el = el->_l;
 
 		while(el){
-			if(el->_a)//{
-				RenderAnalysRect(ipe, el->_a);
+			if(el->key == "color" && el->val[0] == '#'){
+				rel->font_color = el->val.str(1);
+			}
+			else if(el->key == "size"){
+				rel->font_size = el->val.toi();
+			}
+
+			el = el->_l;
+		}
+
+		return ;
+	}
+
+	SIZE RenderAnalysRect(MWndIPE &ipe, HtmlRenderEl *el, HtmlRenderTagInfo *ti = 0){
+		// Add in HtmlRenderEl sx, sy and count text rect
+		
+		// Tag info
+		HtmlRenderTagInfo taginfo;
+		if(ti){
+			taginfo.ti = ti; // Prevous tag
+		}
+
+		// Box size
+		SIZE bsz;
+		bsz.cx = 0;
+		bsz.cy = 0;
+
+		while(el){
+
+			if(!el->type && ti){
+				el->font_color = taginfo.GetTagFontColor();
+				el->font_size = taginfo.GetTagFontSize();
+			}
+
+			switch(el->type){
+				//case HTMLRENT_BR:
+				////	pos_x = 0;
+				////	pos_y = box_y;
+				//break;
+				//case HTMLRENT_P:
+				////	pos_x = 0;
+				////	pos_y += 2 * (box_y - pos_y);
+				//break;
+				case HTMLRENT_A:
+					taginfo.el = el;
+				break;
+				case HTMLRENT_FONT:
+					taginfo.el = el;
+				break;
+				default:
+					taginfo.el = 0;
+				break;
+			}
+
+			if(el->_a){
+				SIZE s = RenderAnalysRect(ipe, el->_a, &taginfo);
+				el->sx = s.cx;
+				el->sy = s.cy;
+
+				bsz.cx += s.cx;
+				if(bsz.cy < s.cy)
+					bsz.cy = s.cy;
+			}
 			
 			//	// Count up level rect
 			//	SIZE sz = RenderAnalysRect(el);
@@ -177,11 +365,18 @@ protected:
 			el = el->_n;
 		}
 
-		return ;
+		return bsz;
 	}
 
-	void RenderAnalysPos(unsigned int &box_x, unsigned int &box_y, unsigned int &pos_x, unsigned int &pos_y, HtmlRenderEl *el){
+	void RenderAnalysPos(unsigned int &box_x, unsigned int &box_y, unsigned int &pos_x, unsigned int &pos_y,
+		HtmlRenderEl *el, HtmlRenderTagInfo *ti = 0){
 		// Count text position
+
+		// Tag info
+		HtmlRenderTagInfo taginfo;
+		if(ti){
+			taginfo.ti = ti; // Prevous tag
+		}
 
 		while(el){
 			if(el->sx && el->sy){
@@ -193,14 +388,66 @@ protected:
 				if(box_y < pos_y + el->sy)
 					box_y = pos_y + el->sy;
 
+				if(ti){
+					int align = taginfo.IsTagAlign();
+					if(align == HTMLRENT_LEFT)
+						el->px = 0;
+					else if(align == HTMLRENT_CENTER)
+						el->px = (box_x - el->sx) / 2;
+					else if(align == HTMLRENT_RIGHT)
+						el->px = box_x - el->sx;
+
+					if(align)
+						pos_y += el->sy;	
+					
+					//if(taginfo.IsTagFont()){
+						//el->font_color = taginfo.GetTagFontColor();
+					//}
+
+					//if(taginfo.IsTagFont()){
+						//el->font_size = taginfo.GetTagFontSize();
+					//}
+
+				}
+
 				// Add test on newline
 
-				pos_x = 0;
-				pos_y += el->sy;
+				if(el->type == HTMLRENT_BR){
+					pos_x = 0;
+					pos_y += el->sy;
+				} else{
+					//pos_x = 0;
+					pos_x += el->sx;
+					//pos_y += el->sy;
+				}
+			}
+
+			switch(el->type){
+				case HTMLRENT_BR:
+					pos_x = 0;
+					pos_y = box_y;
+				break;
+				case HTMLRENT_P:
+					pos_x = 0;
+					pos_y += 2 * (box_y - pos_y);
+				break;
+				case HTMLRENT_LEFT:
+				case HTMLRENT_CENTER:
+				case HTMLRENT_RIGHT:
+					taginfo.el = el;
+				break;
+				//case HTMLRENT_A:
+				//	taginfo.el = el;
+				//break;
+				//case HTMLRENT_FONT:
+				//	taginfo.el = el;
+				//break;
+				default:
+				break;
 			}
 
 			if(el->_a)
-				RenderAnalysPos(box_x, box_y, pos_x, pos_y, el->_a);
+				RenderAnalysPos(box_x, box_y, pos_x, pos_y, el->_a, &taginfo);
 
 			el = el->_n;
 		}
@@ -214,7 +461,8 @@ protected:
 				RenderDraw(ipe, el->_a);
 
 			if(el->text){
-				ipe.DrawText(el->text, mydefaultfont, MRect(el->px, el->py, el->px + el->sx, el->py + el->sy), "000000", el->font_size ? el->font_size : opt_font_size);
+				ipe.DrawText(el->text, mydefaultfont,
+					MRect(el->px, el->py, el->px + el->sx, el->py + el->sy), el->font_color, el->font_size ? el->font_size : opt_font_size);
 			}
 
 			el = el->_n;

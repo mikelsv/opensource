@@ -56,9 +56,9 @@ public:
 	TrieListEl* Get(VString key, TrieListEl *parent = 0){
 		TrieListEl* p = parent ? parent : (TrieListEl*)this;
 
-		for(int i = 0; i < key.size(); i += 1){
+		for(int i = 0; i < key.size(); i += 3){
 			unsigned int k = 0;
-			memcpy(&k, key.data + i, key.sz - i >= 3 ? 3 : key.sz - i); k = *(key.data+i);
+			memcpy(&k, key.data + i, key.sz - i >= 3 ? 3 : key.sz - i);// k = *(key.data+i);
 
 			p = GetOne(k, p);
 			if(!p)
@@ -109,9 +109,9 @@ public:
 	TrieListEl* Set(VString key, TN &val, TrieListEl *parent = 0){
 		TrieListEl* p = parent ? parent : (TrieListEl*)this;
 
-		for(int i = 0; i < key.size(); i += 1){
+		for(int i = 0; i < key.size(); i += 3){
 			unsigned int k = 0;
-			memcpy(&k, key.data + i, key.sz - i >= 3 ? 3 : key.sz - i); k = *(key.data+i);
+			memcpy(&k, key.data + i, key.sz - i >= 3 ? 3 : key.sz - i);// k = *(key.data+i);
 
 			p = SetOne(k, p);
 			if(!p)

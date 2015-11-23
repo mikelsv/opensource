@@ -323,16 +323,6 @@ typedef struct tagMINMAXINFO {
 } MINMAXINFO, *PMINMAXINFO, *LPMINMAXINFO;
 
 
-HDC CreateCompatibleDC(HDC){ return 0; }
-HFONT CreateFontIndirect(const tagLOGFONTA *){ return 0; }
-int GetObject(HGDIOBJ, int, LPVOID){ return 0; }
-HGDIOBJ SelectObject(HDC, HGDIOBJ){ return 0; }
-//HDC GetDC(HWND hWnd){ return 0; }
-HGDIOBJ GetStockObject(int){ return 0; }
-int ReleaseDC(HWND hWnd, HDC hDC){ return 0; }
-BOOL DeleteObject(HGDIOBJ){ return 0; }
-BOOL DeleteDC(HDC){ return 0; }
-
 BOOL GetMessage(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax){ return 0; }
 //LRESULT SendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam){ return 0; }
 BOOL PeekMessage(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg){ return 0; }
@@ -346,12 +336,6 @@ BOOL SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy,
 BOOL GetCursorPos(LPPOINT lpPoint){ return 0; }
 HCURSOR SetCursor(HCURSOR hCursor){ return 0; }
 
-COLORREF SetTextColor(HDC, COLORREF){ return 0; }
-DWORD GetSysColor(int nIndex){ return 0; }
-BOOL GetTextExtentPoint32(HDC, LPCSTR, int, LPSIZE){ return 0; }
-COLORREF SetBkColor(HDC, COLORREF){ return 0; }
-int SetBkMode(HDC, int){ return 0; }
-
 int DrawText(HDC hDC, LPCSTR lpString, int nCount, LPRECT lpRect, UINT uFormat){ return 0;}
 BOOL LineTo(HDC, int, int){ return 0; }
 BOOL MoveToEx(HDC, int, int, LPPOINT){ return 0; }
@@ -363,7 +347,7 @@ HDC BeginPaint(HWND hWnd, LPPAINTSTRUCT lpPaint){
 //	return DefaultGC(mwnddisp, mwndscreen);
   return 0; }
 BOOL EndPaint(HWND hWnd, CONST PAINTSTRUCT *lpPaint){ return 0; }
-HBITMAP CreateDIBSection(HDC, CONST BITMAPINFO *, UINT, VOID **, HANDLE, DWORD){ return 0; }
+
 
 HRGN ExtCreateRegion(CONST XFORM *, DWORD, CONST RGNDATA *){ return 0; }
 int SetWindowRgn(HWND hWnd, HRGN hRgn, BOOL bRedraw){ return 0; }
@@ -401,9 +385,6 @@ HBITMAP CreateCompatibleBitmap(HDC hdc, int cx, int cy){ return 0; }
 
 BOOL PrintWindow(HWND hwnd, HDC hdcBlt, UINT nFlags){ return 0; }
 
-int SetStretchBltMode(HDC hdc, int mode){ return 0; }
-int StretchDIBits(HDC hdc, int xDest, int yDest, int DestWidth, int DestHeight, int xSrc, int ySrc, int SrcWidth, int SrcHeight,
-	CONST VOID * lpBits, CONST BITMAPINFO * lpbmi, UINT iUsage, DWORD rop){ return 0; }
 LRESULT SendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam){ return 0; }
 
 BOOL EmptyClipboard(VOID){ return 0; }
@@ -412,6 +393,32 @@ BOOL GetClientRect(HWND hWnd, LPRECT lpRect){ return 0; }
 
 //HDC GetWindowDC(HWND hWnd){ return 0; }
 
+#endif
+
+#if defined(__GNUC__)
+	HDC CreateCompatibleDC(HDC){ return 0; }
+	HFONT CreateFontIndirect(const tagLOGFONTA *){ return 0; }
+	int GetObject(HGDIOBJ, int, LPVOID){ return 0; }
+	HGDIOBJ SelectObject(HDC, HGDIOBJ){ return 0; }
+	//HDC GetDC(HWND hWnd){ return 0; }
+	HGDIOBJ GetStockObject(int){ return 0; }
+	int ReleaseDC(HWND hWnd, HDC hDC){ return 0; }
+	BOOL DeleteObject(HGDIOBJ){ return 0; }
+	BOOL DeleteDC(HDC){ return 0; }
+
+	COLORREF SetTextColor(HDC, COLORREF){ return 0; }
+	DWORD GetSysColor(int nIndex){ return 0; }
+	BOOL GetTextExtentPoint32(HDC, LPCSTR, int, LPSIZE){ return 0; }
+	COLORREF SetBkColor(HDC, COLORREF){ return 0; }
+	int SetBkMode(HDC, int){ return 0; }
+
+	HBITMAP CreateDIBSection(HDC, CONST BITMAPINFO *, UINT, VOID **, HANDLE, DWORD){ return 0; }
+	int SetStretchBltMode(HDC hdc, int mode){ return 0; }
+	int StretchDIBits(HDC hdc, int xDest, int yDest, int DestWidth, int DestHeight, int xSrc, int ySrc, int SrcWidth, int SrcHeight,
+	CONST VOID * lpBits, CONST BITMAPINFO * lpbmi, UINT iUsage, DWORD rop){ return 0; }
+
+	BOOL PrintWindow(HWND hwnd, HDC hdcBlt, UINT nFlags){ return 0; }
+	VOID SwitchToThisWindow( HWND hwnd, BOOL fUnknown){ return ; }
 #endif
 
 
@@ -448,6 +455,7 @@ public:
 	bool CxImage::Destroy(){ return 1; }
 
 	bool CxImage::CreateFromArray(BYTE* pArray,DWORD dwWidth,DWORD dwHeight,DWORD dwBitsperpixel, DWORD dwBytesperline, bool bFlipImage){ return 0; }
+	bool CxImage::CreateFromHBITMAP(HBITMAP hbmp, HPALETTE hpal){ return 0; }
 
 	bool CxImage::Decode(BYTE*, DWORD, DWORD){ return 0; }
 

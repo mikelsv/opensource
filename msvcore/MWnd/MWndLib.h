@@ -13,6 +13,11 @@ Versions mwnd_version[]={
 	#define USEMSV_CXIMAGE_NOLOADTAG
 #endif
 
+#ifdef __GNUC__
+	//#define USEMSV_CXIMAGE_NOLOADTAG
+	#define USEMSV_CXIMAGE_EMULATE
+#endif
+
 #ifndef USEMSV_MLIST
 #error "Write #define USEMSV_MLIST to cpp!"
 #endif

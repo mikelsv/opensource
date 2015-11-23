@@ -542,7 +542,7 @@ protected:
 		int ret=Recv(sock);
 
 #ifdef USEMSV_OPENSSL
-			ssl.close();
+			ssl.Close();
 #endif
 		closesocket(sock);
 
@@ -624,7 +624,7 @@ protected:
 	int send(SOCKET sock, const char *buf, int sz){
 #ifdef USEMSV_OPENSSL
 			if(usessl)
-				return ssl.send(buf, sz);
+				return ssl.Send(buf, sz);
 #endif
 			return ::send(sock, buf, sz, 0);
 	}
@@ -632,7 +632,7 @@ protected:
 	int recv(SOCKET sock, char *buf, int sz){
 #ifdef USEMSV_OPENSSL
 			if(usessl)
-				return ssl.recv(buf, sz);
+				return ssl.Recv(buf, sz);
 #endif
 		return ::recv(sock, buf, sz, 0);
 	}
@@ -812,7 +812,7 @@ protected:
 		}
 
 #ifdef USEMSV_OPENSSL
-			ssl.close();
+			ssl.Close();
 #endif
 		closesocket(sock);
 
@@ -891,7 +891,7 @@ protected:
 	int send(SOCKET sock, const char *buf, int sz){
 #ifdef USEMSV_OPENSSL
 			if(usessl)
-				return ssl.send(buf, sz);
+				return ssl.Send(buf, sz);
 #endif
 			return ::send(sock, buf, sz, 0);
 	}
@@ -899,7 +899,7 @@ protected:
 	int recv(SOCKET sock, char *buf, int sz){
 #ifdef USEMSV_OPENSSL
 			if(usessl)
-				return ssl.recv(buf, sz);
+				return ssl.Recv(buf, sz);
 #endif
 		return ::recv(sock, buf, sz, 0);
 	}

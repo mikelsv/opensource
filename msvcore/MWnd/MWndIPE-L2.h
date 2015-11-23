@@ -1731,7 +1731,7 @@ int Save(VString file){
 #ifndef NOUSEMSV_WINAPI
 	CxImage img;
 	img.CreateFromArray(GetData(), GetWidth(), GetHeight(), 24, GetEffWidth(), 0);
-	return img.Save(file, RetType(file.str(-3)));
+	return img.Save(SString(file), RetType(file.str(-3)));
 #endif // #ifndef NOUSEMSV_WINAPI
 	return 0;
 	}

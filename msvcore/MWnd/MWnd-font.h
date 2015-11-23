@@ -51,6 +51,10 @@ public:
 		return 1;
 	}
 
+	int Is() const{
+		return chars != 0;
+	}
+
 	int GetW(int c)const{
 		if(c<0 || c>=chars) return 0;
 		return chr[c]->sx;
@@ -88,7 +92,12 @@ public:
 	}		
 
 	const MyFontString* GetString(int font)const{
-		if(font<0 || font>=80) return 0;
+		if(font<0 || font>=80)
+			return 0;
+
+		while(font > 0 && !str[font].Is())			
+			font --;
+
 		return &str[font];
 	}
 

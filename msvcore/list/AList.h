@@ -194,14 +194,14 @@ public:
 	T* New(T *parent = 0){
 		T *t = this->AllocNew();
 		if(!parent)
-			OMAdd(t);
+			OMatrixT<T>::OMAdd(t);
 		else
-			OMAddP(parent->_a, parent->_e, t);
+			OMatrixT<T>::OMAddP(parent->_a, parent->_e, t);
 		return t;
 	}
 
 	void Free(T *parent, T *t){
-		OMDelP(parent->_a, parent->_e, t);
+		OMatrixT<T>::OMDelP(parent->_a, parent->_e, t);
 		return this->AllocFree(t);
 	}
 

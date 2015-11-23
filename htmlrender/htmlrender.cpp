@@ -13,12 +13,6 @@
 #define MWNDUSELOADFONT_MEM times_new_romain
 #include "../../opensource/msvcore/font/times_new_romain.h"
 
-//typedef struct tagSIZE
-//{
-//    unsigned int        cx;
-//    unsigned int        cy;
-//} SIZE;
-
 #include "../../opensource/msvcore/msvcore.cpp"
 
 Versions PROJECTVER[]={
@@ -76,6 +70,10 @@ int main(int args, char* arg[]){
 		return 0;
 	}
 
+	if(!IsFile(in)){
+		print("Error: File '", in, "' not found!\r\n");
+		return 0;
+	}
 
 	HtmlRender hren;
 

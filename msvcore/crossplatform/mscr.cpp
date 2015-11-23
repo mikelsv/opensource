@@ -620,12 +620,22 @@ return bs;
 }
 
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(__GNUC__)
+#define WIN32_CRITICAL_SECTIONS
+
 #define PRTHREAD_COND_SIGNAL 0
 //#define PRTHREAD_COND_BROADCAST 1
 
 typedef CRITICAL_SECTION pthread_mutex_t;
 typedef CONDITION_VARIABLE pthread_cond_t;
+
+void pthread_mutex_init(pthread_mutex_t *shared_mutex, void*){
+#ifndef WINCE
+	if(shared_mutex->LockCount >= 0 && !shared_mutex->OwningThread && !shared_mutex->LockSemaphore){ InitializeCriticalSection(shared_mutex);  }
+#else
+	if(shared_mutex->LockCount == 0 && !shared_mutex->hCrit && !shared_mutex->LockSemaphore){ InitializeCriticalSection(shared_mutex); }
+#endif
+}
 
 void pthread_mutex_lock(pthread_mutex_t *shared_mutex){
 	EnterCriticalSection(shared_mutex);
@@ -633,6 +643,10 @@ void pthread_mutex_lock(pthread_mutex_t *shared_mutex){
 
 void pthread_mutex_unlock(pthread_mutex_t *shared_mutex){
 	LeaveCriticalSection(shared_mutex);
+}
+
+void pthread_mutex_destroy(pthread_mutex_t *shared_mutex){
+	DeleteCriticalSection(shared_mutex);
 }
 
 void WINAPI pthread_cond_init_winxp(pthread_cond_t *cond){
@@ -650,47 +664,6 @@ void WINAPI pthread_cond_signal_winxp(pthread_cond_t *cond){
   //PulseEvent(cv->events_[PRTHREAD_COND_SIGNAL]);
 	SetEvent(cond->Ptr);
 }
-
-
-/*  For Windows XP
-typedef struct{
-  HANDLE events_[2];
-  // Signal and broadcast event HANDLEs.
-} pthread_cond_t;
-
-void pthread_cond_init(pthread_cond_t *cv, const void*){
-  // Create an auto-reset event.
-  cv->events_[PRTHREAD_COND_SIGNAL] = CreateEvent (NULL,  // no security
-                                     FALSE, // auto-reset event
-                                     FALSE, // non-signaled initially
-                                     NULL); // unnamed
-
-  // Create a manual-reset event.
-  cv->events_[PRTHREAD_COND_BROADCAST] = CreateEvent (NULL,  // no security
-                                        TRUE,  // manual-reset
-                                        FALSE, // non-signaled initially
-                                        NULL); // unnamed
-}
-
-void pthread_cond_wait (pthread_cond_t *cv, pthread_mutex_t *external_mutex){
-  // Release the <external_mutex> here and wait for either event
-  // to become signaled, due to <pthread_cond_signal> being
-  // called or <pthread_cond_broadcast> being called.
-  LeaveCriticalSection(external_mutex);
-  WaitForMultipleObjects (2, // Wait on both <events_>
-                          cv->events_,
-                          FALSE, // Wait for either event to be signaled
-                          INFINITE); // Wait "forever"
-
-  // Reacquire the mutex before returning.
-  EnterCriticalSection(external_mutex);
-}
-
-void pthread_cond_signal(pthread_cond_t *cv){
-  // Try to release one waiting thread.
-  //PulseEvent(cv->events_[PRTHREAD_COND_SIGNAL]);
-	SetEvent(cv->events_[PRTHREAD_COND_SIGNAL]);
-}*/
 
 typedef void (WINAPI *t_InitializeConditionVariable)(pthread_cond_t *external_cond);
 typedef void (WINAPI *t_SleepConditionVariable)(pthread_cond_t *external_cond, pthread_mutex_t *external_mutex, DWORD tm);
@@ -747,29 +720,18 @@ public:
 
 GLock(){
 	memset(this, 0, sizeof(GLock));
-#ifdef WIN32
-#ifndef WINCE
-	if(shared_mutex.LockCount>=0 && !shared_mutex.OwningThread) { InitializeCriticalSection(&shared_mutex); flock=1; }
-#else
-	if(shared_mutex.LockCount==0 && !shared_mutex.hCrit){ InitializeCriticalSection(&shared_mutex); flock=1; }
-#endif
-#else
 	pthread_mutex_init(&shared_mutex, NULL);
-#endif
-return ;
+	return ;
 }
 
 ~GLock(){
-	if(lock) UnLock();
-#ifdef WIN32
-	DeleteCriticalSection(&shared_mutex);
-#else
+	if(lock)
+		UnLock();
 	pthread_mutex_destroy(&shared_mutex);
-#endif
 }
 
 bool Lock(){
-#ifdef WIN32
+#ifdef WIN32_CRITICAL_SECTIONS
 #ifndef WINCE
 	if(!flock && shared_mutex.LockCount>=0 && !shared_mutex.OwningThread && !shared_mutex.LockSemaphore){
 		InitializeCriticalSection(&shared_mutex); flock=1; }
@@ -778,7 +740,7 @@ bool Lock(){
 #endif
 #endif
 
-#ifdef WIN32
+#ifdef WIN32_CRITICAL_SECTIONS
 	int llc=shared_mutex.LockCount;
 	HANDLE t=shared_mutex.OwningThread;
 	EnterCriticalSection(&shared_mutex);
@@ -796,20 +758,19 @@ bool Lock(){
 }
 
 bool UnLock(){
-#ifdef WIN32
+#ifdef WIN32_CRITICAL_SECTIONS
 	if(!lock || !shared_mutex.OwningThread){
 		globalerror("GLOCK UnLock!\r\n");
 	}
-	lock=0;
-	LeaveCriticalSection(&shared_mutex);
 #else
 	if(!lock){
 		globalerror("GLOCK UnLock!\r\n");
 	}
+#endif
 	lock=0;
 	pthread_mutex_unlock(&shared_mutex);
-#endif
-return 1;
+	
+	return 1;
 }
 
 };
@@ -829,31 +790,20 @@ public:
 
 	void Init(){
 		memset(this, 0, sizeof(*this));
-#ifdef WIN32
-	#ifndef WINCE
-		if(shared_mutex.LockCount >= 0 && !shared_mutex.OwningThread && !shared_mutex.LockSemaphore){ InitializeCriticalSection(&shared_mutex); flock = 1; }
-	#else
-		if(shared_mutex.LockCount == 0 && !shared_mutex.hCrit && !shared_mutex.LockSemaphore){ InitializeCriticalSection(&shared_mutex); flock = 1; }
-	#endif
-#else
-		pthread_mutex_init(&shared_mutex, NULL); flock = 1;
-#endif
+		pthread_mutex_init(&shared_mutex, NULL);
+		flock = 1;
 	}
 
 ~TLock(){
-	if(lock) UnLock();
-#ifdef WIN32
-	DeleteCriticalSection(&shared_mutex);
-#else
+	if(lock)
+		UnLock();
 	pthread_mutex_destroy(&shared_mutex);
-#endif
 }
 
 bool IsLock(){
-	DWORD thid=GetCurrentThreadId();
-	if(lock && thid!=threadid){
+	DWORD thid = GetCurrentThreadId();
+	if(lock && thid != threadid)
 		return 1;
-	}
 
 	return 0;
 }
@@ -867,17 +817,18 @@ bool Lock(){
 	}
 #endif
 
-	DWORD thid=GetCurrentThreadId();
-	if(lock && thid==threadid){
-		lock++; return 1;
+	DWORD thid = GetCurrentThreadId();
+	if(lock && thid == threadid){
+		lock ++;
+		return 1;
 	}
 
-#ifdef WIN32
-	int llc=shared_mutex.LockCount;
-	HANDLE t=shared_mutex.OwningThread;
+#ifdef WIN32_CRITICAL_SECTIONS
+	int llc = shared_mutex.LockCount;
+	HANDLE t = shared_mutex.OwningThread;
 
 	try{
-	EnterCriticalSection(&shared_mutex);
+		pthread_mutex_lock(&shared_mutex);
 	}catch(...){
 		return 0;
 	}
@@ -902,27 +853,29 @@ bool UnLock(){
 	DWORD thid=GetCurrentThreadId();
 
 	if(lock>1){
-		if(thid!=threadid){
+		if(thid != threadid){
 			globalerror("TLOCK UnLock thread id!\r\n"); return 0;
 		}
 		lock--; return 1;
 	}
 
-#ifdef WIN32
+#ifdef WIN32_CRITICAL_SECTIONS
 	if(!lock || !shared_mutex.OwningThread){
 		globalerror("GLOCK UnLock!\r\n");
 	}
 
-	lock=0; threadid=0;
+	lock = 0;
+	threadid = 0;
 	LeaveCriticalSection(&shared_mutex);
 #else
 	if(!lock){
 		globalerror("GLOCK UnLock!\r\n");
 	}
-	lock=0; threadid=0;
+	lock = 0;
+	threadid = 0;
 	pthread_mutex_unlock(&shared_mutex);
 #endif
-return 1;
+	return 1;
 }
 
 };
@@ -942,15 +895,7 @@ public:
 private:
 	void Init(){
 		memset(this, 0, sizeof(*this));
-#ifdef WIN32
-	#ifndef WINCE
-		if(shared_mutex.LockCount >= 0 && !shared_mutex.OwningThread && !shared_mutex.LockSemaphore){ InitializeCriticalSection(&shared_mutex); }
-	#else
-		if(shared_mutex.LockCount == 0 && !shared_mutex.hCrit && !shared_mutex.LockSemaphore){ InitializeCriticalSection(&shared_mutex); }
-	#endif
-#else
 		pthread_mutex_init(&shared_mutex, NULL);
-#endif
 		pthread_cond_init(&shared_cond, 0);
 		flock = 1;
 	}
@@ -959,23 +904,23 @@ public:
 
 	bool Lock(){
 #ifdef WIN32
-	if(!flock){
-		tlocklock.Lock();
-		Init();
-		tlocklock.UnLock();
-	}
+		if(!flock){
+			tlocklock.Lock();
+			Init();
+			tlocklock.UnLock();
+		}
 #endif
 
-	pthread_mutex_lock(&shared_mutex);
-	lock = 1;
-	return 1;
-}
+		pthread_mutex_lock(&shared_mutex);
+		lock = 1;
+		return 1;
+	}
 
-bool UnLock(){
-	lock = 0;
-	pthread_mutex_unlock(&shared_mutex);
-	return 1;
-}
+	bool UnLock(){
+		lock = 0;
+		pthread_mutex_unlock(&shared_mutex);
+		return 1;
+	}
 
 	void Wait(int lockit = 1){
 		if(lockit)
