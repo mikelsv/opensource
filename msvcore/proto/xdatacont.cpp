@@ -932,7 +932,7 @@ public:
 
 	void ReadXMLDo(XDataEl*parent, unsigned char*&line, unsigned char*to){
 		VString k, v; unsigned char *lline=line;
-		XDataEl *pel=0, *fel=0, *eel=0, *el=0;
+		XDataEl *pel=0, *fel=0, *eel=0, *el=0, *nppl = 0;
 
 		int type=0;
 
@@ -952,6 +952,10 @@ public:
 					parent->_a=pel;
 					parent->_e=pel;
 				}
+			} else{
+				if(nppl)
+					nppl->_n = pel;
+				nppl = pel;
 			}
 		}
 		
@@ -986,9 +990,17 @@ public:
 						//pel->_a=0;
 						//pel->_e=0;
 						//pel->_l=0;
+					} else{
+						if(nppl)
+							nppl->_n = pel;
+						nppl = pel;
 					}
+
 					type=1;
 				}else if(type==1){
+					if(line!=lline)
+						v.setu(lline, line-lline);
+
 					if(k && v){
 						//ReadXMLDoSetKV();
 						el = data.Add(); //&data.inserta();
@@ -1003,9 +1015,6 @@ public:
 						k.Clean(); v.Clean();
 						//
 					}
-
-					if(line!=lline)
-						v.setu(lline, line-lline);
 				}
 
 				if(*line=='>'){
@@ -1014,7 +1023,7 @@ public:
 					
 					line++;
 					break;
-				}	
+				}
 
 				lline=line+1;
 			}
@@ -1084,6 +1093,248 @@ public:
 			if(*line=='>')
 				break;
 			line++;
+		}
+
+		return ;
+	}
+
+
+	int ReadHtml(VString data, bool noclear=0){
+		return ReadHtml(data, data, noclear);
+	}
+
+	int ReadHtml(unsigned char *data, unsigned int size, bool noclear = 0){
+		if(!noclear)
+			Clear();
+
+		XDataEl *el = this->data.Add();
+
+		ReadHtmlDo(el, data, data + size);
+
+		return 1;
+	}
+
+	XDataEl* ReadHtmlAdd(XDataEl *parent){
+		XDataEl *el = data.Add();
+
+		if(parent){
+			if(!parent->_a){
+				parent->_a = el;
+				parent->_e = el;
+				//el->_p = 0;
+				//el->_n = 0;
+				//el->_l = 0;
+			} else{
+				parent->_e->_n = el;
+				el->_p = parent->_e;
+				parent->_e = el;
+				//el->_n = 0;
+				//el->_l = 0;
+			}
+		}
+
+		return el;
+	}
+
+	XDataEl* ReadHtmlAddL(XDataEl *parent, XDataEl *lparent){
+		if(!parent)
+			return 0;
+
+		XDataEl *el = data.Add();
+
+		if(!lparent){
+			parent->_l = el;
+		} else{
+			lparent->_l = el;
+		}
+
+		lparent = el;
+
+		return el;
+	}
+
+	struct ReadHtmlPrev{
+		ReadHtmlPrev *prev;
+		VString tag;
+		int toit;
+		//XDataEl *parent;
+
+		ReadHtmlPrev(){
+			prev = 0;
+			toit = 0;
+		}
+
+		void GoTo(VString tag){
+			ReadHtmlPrev *p = prev;
+
+			while(p){
+				if(p->tag == tag){
+					p->toit = 1;
+					return ;
+				} else
+					p->toit = 0;
+			}
+
+			if(prev)
+				prev->toit = 1;
+		}
+
+	};
+
+	void ReadHtmlDo(XDataEl *parent, unsigned char *&line, unsigned char *to, ReadHtmlPrev *prev = 0){
+		XDataEl *el, *lel;
+		VString k, v;
+		unsigned char *lline = line;
+
+		// Prev
+		ReadHtmlPrev nprev;
+		nprev.prev = prev;
+
+		int opt_cl; // </tag>
+		int opt_kv; // key(0) = val(1)
+
+		while(line < to){
+			lline = line;
+
+			// Find <
+			while(line < to && *line != '<')				
+				line ++;
+			
+			if(line != lline){				
+				el = ReadHtmlAdd(parent);
+				el->val = VString(lline, line - lline);
+				lline = line;
+			}
+
+			// <tag>
+			line ++;
+			
+			// </tag>
+			if(line < to && *(line) == '/'){
+				line ++;
+				opt_cl = 2;
+			}
+			else
+				opt_cl = 0;
+
+			lline = line;
+
+			// tag name
+			while(line < to && ( *line != ' ' && *line != '\t' && *line != '\n'
+				 && *line != '\r' && *line != '/' && *line != '>'))
+				line ++;
+
+			if(opt_cl){
+				nprev.GoTo(VString(lline, line - lline));
+				line ++;
+				break;
+			}
+
+			el = ReadHtmlAdd(parent);
+			nprev.tag = VString(lline, line - lline);
+			el->key = nprev.tag;
+			lline = line;
+			opt_kv = 0;
+
+			lel = 0;
+		
+			// to end tag
+			while(line < to && *line != '>'){
+
+				// string
+				if(*line >= 'a' && *line <= 'z' || *line >= 'A' && *line <= 'Z' || *line >= '0' && *line <= '9'){
+					lline = line;
+					while(line < to && (*line >= 'a' && *line <= 'z' || *line >= 'A' && *line <= 'Z' || *line >= '0' && *line <= '9'))
+						line ++;
+
+					if(!opt_kv){
+						k.setu(lline, line - lline);
+					} else {
+						v.setu(lline, line - lline);
+						opt_kv = 2;
+					}
+				}
+
+				// "text"
+				else if(*line == '"'){
+					lline = ++line;
+
+					while(line < to){
+						if(*line == '"')
+							break;
+
+						if(*line == '\\'){						
+							if(line + 1 < to)
+								line ++;
+	
+						}
+						line ++;
+					}
+					v.setu(lline, line - lline);
+					if(opt_kv)
+						opt_kv = 2;
+					line ++;
+					continue;
+				}
+
+				// 'text'
+				else if(*line == '\''){
+					lline = ++line;
+
+					while(line < to){
+						if(*line == '\'')
+							break;
+
+						if(*line == '\\'){						
+							if(line + 1 < to)
+								line ++;
+	
+						}
+						line ++;
+					}
+					v.setu(lline, line - lline);
+					if(opt_kv)
+						opt_kv = 2;
+					line ++;
+					continue;
+				}
+
+				else if(*line == '=' && k){
+					opt_kv = 1;
+					line ++;
+				}
+
+				//if(*line != ' ' || *line != '\t' || *line != '\n'
+				// || *line != '\r' || *line != '/' || *line != '>'){
+				//	 lline = line;
+				//}
+
+				else
+					line ++;
+
+				if(opt_kv == 2){
+					lel = ReadHtmlAddL(el, lel);
+					lel->key = k;
+					lel->val = v;
+					opt_kv = 0;
+					k.Clean();
+				}
+			}
+
+			if(line < to){
+				if(*(line - 1) == '/')
+					opt_cl = 1;
+				line ++;
+			}
+
+			if(opt_cl == 0){
+				ReadHtmlDo(el, line, to, &nprev);
+				if(!nprev.toit)
+					return ;
+			} /*else if(opt_cl == 2){
+				nprev.GoTo();
+				break;
+			}*/
 		}
 
 		return ;
