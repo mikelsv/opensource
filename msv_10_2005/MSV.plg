@@ -1,0 +1,30 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: MSV - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\Mikel\LOCALS~1\Temp\RSP19E.tmp" with contents
+[
+/nologo /MLd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /FR"Debug/" /Fp"Debug/MSV.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
+"C:\Utils\Projects\MSV\MSV.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\Mikel\LOCALS~1\Temp\RSP19E.tmp" 
+Creating command line "link.exe -lib /nologo /out:"Debug\MSV.lib"  .\Debug\MSV.obj "
+<h3>Output Window</h3>
+Compiling...
+MSV.cpp
+Creating library...
+Creating command line "bscmake.exe /nologo /o"Debug/MSV.bsc"  .\Debug\MSV.sbr"
+Creating browse info file...
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+MSV.lib - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>
