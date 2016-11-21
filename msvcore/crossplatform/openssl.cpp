@@ -1,19 +1,123 @@
 #define USEMSV_OPENSSL
-#pragma comment(lib,"../../openssl-1.0.2/out32/ssleay32.lib") 
-#pragma comment(lib,"../../openssl-1.0.2/out32/libeay32.lib") 
+
+//#pragma comment(lib,"../../openssl-1.1.0a/libssl.lib") 
+//#pragma comment(lib,"../../openssl-1.1.0a/libcrypto.lib") 
+
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#ifndef OPENSSL_VERSION_NUMBER
+#define OPENSSL_VERSION_NUMBER 0x1010001fL
+#endif
+
+
+#if OPENSSL_VERSION_NUMBER >= 0x1010000fL
+	#pragma comment(lib,"C:\\Program Files (x86)\\OpenSSL\\lib\\libssl.lib")
+	#pragma comment(lib,"C:\\Program Files (x86)\\OpenSSL\\lib\\libcrypto.lib") 
+#else
+	#pragma comment(lib,"C:\\Program Files (x86)\\OpenSSL\\lib\\ssleay32.lib") 
+	#pragma comment(lib,"C:\\Program Files (x86)\\OpenSSL\\lib\\libeay32.lib") 
+#endif
+
+// Compile perl Configure VC-WIN32 no-shared
+// nmake
+// nmake test
+// nmake install
+
+// Linker: /DYNAMICBASE crypt32.lib 
+
 // ZLIB: #include "../../opensource/msvcore/crossplatform-zlib.cpp"
 
-// include path ..\..\openssl-1.0.2\include
+// include path C:\Program Files (x86)\OpenSSL\include
+// include path ..\..\openssl-1.1.0a\include
 
 // http://developer.covenanteyes.com/building-openssl-for-visual-studio/
 // http://phpseclib.sourceforge.net/
 // http://stackoverflow.com/questions/4484246/encrypt-and-decrypt-text-with-rsa-in-php
 
-#define OPENSSL_RECV_WAIT	S2GM
+// MSV Smart Ssl Pointer for test(memory leak)
+class MsspCoreEl{
+public:
+	void *p;
+};
+
+class MsspCore{
+	OList<MsspCoreEl> arr;
+
+public:
+	void New(void *v){
+		if(!v)
+			return ;
+
+		MsspCoreEl *p = arr.New();
+		p->p = v;
+
+		return ;
+	}
+
+	void Free(void *v){
+		if(!v)
+			return ;
+
+		MsspCoreEl *p = 0;
+		while(p = arr.Next(p)){
+			if(p->p == v){
+				arr.Del(p);
+				return ;
+			}
+		}
+
+		WarningReFree();
+
+		return ;
+	}
+
+	void End(){
+		MsspCoreEl *p = arr.Next(0);
+		if(p)
+			WarningMemoryLeak();
+		return ;
+	}
+
+	~MsspCore(){
+		MsspCoreEl *p = arr.Next(0);
+		if(p)
+			WarningMemoryLeak2();
+		return ;
+	}
+
+	void WarningMemoryLeak(){
+		print("WARNING! Mssp memory leak found!\r\n");
+	}
+
+	void WarningMemoryLeak2(){
+		print("WARNING! Mssp free error!\r\n");
+	}
+
+	void WarningReFree(){
+		print("WARNING! Mssp free again!\r\n");
+	}
+
+
+};
+
+
+// See MsspCore class
+#ifdef USEMSV_OPENSSL_DEBUG
+	#define MsspInit() MsspCore _mssp_core;
+	#define MsspNew(p) _mssp_core.New(p);
+	#define MsspFree(p) _mssp_core.Free(p);
+	#define MsspEnd() _mssp_core.End();
+#else
+	#define MsspInit()
+	#define MsspNew(p)
+	#define MsspFree(p)
+	#define MsspEnd()
+#endif
+
+
+#define OPENSSL_RECV_WAIT	(-2147483647) //S2GM
 
 class InitMySSL{
 public:
@@ -28,13 +132,18 @@ public:
 		ERR_free_strings();
 		EVP_cleanup();
 		ERR_remove_state(0);
-		sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
+		//sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
+
 		//sk_free(SSL_COMP_get_compression_methods());
 		//SSL_COMP_free_compression_methods();
 	}
 
 
 }InitMySSL;
+
+#define MYSSLWORK_OK			1
+#define MYSSLWORK_WANT_READ		SSL_ERROR_WANT_READ
+#define MYSSLWORK_WANT_WRITE	SSL_ERROR_WANT_WRITE
 
 class MySSL{
 	SSL *ssl;
@@ -48,117 +157,131 @@ public:
 		work = 0;
 	}
 
-	//int IsWork(){
-	//	return work;
-	//}
-
 	int IsWork(int isrecv = 0){
-		if(isrecv && work == 1){
+		//if(isrecv && work == 1){
 
-			int r = 0; // SSL_accept(ssl);
+		//	int r = 0; // SSL_accept(ssl);
 
-			if(r<0){
-				ERR_print_errors_fp(stderr);
-				Release();
-				return 0;
-			}
+		//	if(r<0){
+		//		ERR_print_errors_fp(stderr);
+		//		Release();
+		//		return 0;
+		//	}
 
-			work++;
-		}
+		//	work++;
+		//}
 
-		return work>1;
+		return work >= 1;
 	}
 
 	int Connect(SOCKET sock){
+		MsspInit();
 		Release();
 
-		ctx=SSL_CTX_new(SSLv23_method());
-		if(!ctx)
+		ctx = SSL_CTX_new(SSLv23_method());
+		MsspNew(ctx);
+
+		if(!ctx){
+			MsspEnd();
 			return 0;
+		}
 
 		ssl = SSL_new(ctx);
+		MsspNew(ssl);
+
 		if(!ssl){
 			Release();
+			MsspEnd();
 			return 0;
 		}
 
 		if(!SSL_set_fd(ssl, sock)){
 			Release();
+			MsspEnd();
 			return 0;
 		}
 
 		SSL_CTX_set_timeout(ctx, 60);
 		
-		int err = SSL_connect(ssl);
+		int eid;
 
-		work = err >= 0;
+		if((eid = SSL_connect(ssl)) < 0){
+			int sid = SSL_get_error(ssl, eid);
+			if(sid == SSL_ERROR_WANT_READ || sid == SSL_ERROR_WANT_WRITE)
+				work = MYSSLWORK_WANT_WRITE;
+			else
+				work = 0;
+		}
+		else
+			work = eid >= 0;
+
+		MsspFree(ctx);
+		MsspFree(ssl);
+		MsspEnd();
 		return work;
 	}
 
-	int Accept(SOCKET sock, VString cert, VString key){
+	int AcceptFile(SOCKET sock, VString cert, VString key, int typefile = 0){
+		return Accept(sock, cert, key, 1);
+	}
+
+	int Accept(SOCKET sock, VString cert, VString key, int typefile = 0){
+		MsspInit();
 		Release();
 
 		ctx = SSL_CTX_new(SSLv23_server_method());
+		MsspNew(ctx);
+
 		if(!ctx){
+			MsspEnd();
 			Release();
 			return 0;
 		}
 
-		if(!LoadCert(ctx, cert, key)){
+		if(!typefile && !LoadCert(ctx, cert, key) || typefile && !LoadCertFile(ctx, cert, key)){
+			MsspFree(ctx);
+			MsspEnd();
+			Release();
 			return 0;
 		}
 
 		ssl = SSL_new(ctx);
-		if(!ssl){
+		MsspNew(ssl);
+
+		if(!ssl || !SSL_set_fd(ssl, sock) || !SSL_CTX_set_timeout(ctx, 60)){
+			MsspFree(ctx);
+			MsspFree(ssl);
+			MsspEnd();
 			Release();
 			return 0;
 		}
 
-		if(!SSL_set_fd(ssl, sock)){
-			Release();
-			return 0;
+		int eid;
+
+		if((eid = SSL_accept(ssl)) < 0){
+			int sid = SSL_get_error(ssl, eid);
+			
+			if(sid == SSL_ERROR_WANT_READ){
+				work = MYSSLWORK_WANT_READ;
+			}else {
+				ERR_print_errors_fp(stderr);
+				
+				MsspFree(ctx);
+				MsspFree(ssl);
+				MsspEnd();
+				Release();
+				return 0;
+			}
 		}
-
-		SSL_CTX_set_timeout(ctx, 60);
-
-		work = 1;
-
+		else 
+			work = 1;
+		
+		MsspFree(ctx);
+		MsspFree(ssl);
+		MsspEnd();
 		return 1;
 	}
 
-	int AcceptFile(SOCKET sock, VString cert, VString key){
-		Release();
-
-		int r = 0;
-
-		ctx = SSL_CTX_new(SSLv23_server_method());
-		if(!ctx){
-			Release();
-			return 0;
-		}
-
-		if(!LoadCertFile(ctx, cert, key)){
-			return 0;
-		}
-
-		ssl = SSL_new(ctx);
-		if(!ssl){
-			Release();
-			return 0;
-		}
-
-		if(!SSL_set_fd(ssl, sock)){
-			Release();
-			return 0;
-		}
-
-		if(SSL_accept(ssl) < 0){
-			ERR_print_errors_fp(stderr);
-			Release();
-			return 0;
-		}
-
-		SSL_CTX_set_timeout(ctx, 60);
 
 //char buf[8*1024];
 //    char reply[8*1024];
@@ -191,12 +314,10 @@ public:
  //       else
  //           ERR_print_errors_fp(stderr);
  //   }
-		work = 1;
+		// work = 1;
 
-		return 1;
-	}
 
-	int LoadCert(SSL_CTX *ctx, VString cert, VString key){
+	int LoadCert(SSL_CTX *ctx, VString cert, VString key, int typefile = 0){
 		if(!cert || !key)
 			return 0;
 
@@ -205,33 +326,32 @@ public:
 		// Read X509
 		RSA *rsa = 0;
 		X509 *x509 = NULL;
-		BIO *b=BIO_new_mem_buf(cert, cert);
+		BIO *b = BIO_new_mem_buf(cert, cert);
 		x509 = PEM_read_bio_X509(b, NULL, 0, NULL);
 
-		ret=SSL_CTX_use_certificate(ctx, x509);
+		ret = SSL_CTX_use_certificate(ctx, x509);
 
 		BIO_free(b);
 		X509_free(x509);
 		
-		if(ret<=0){
+		if(ret <= 0){
 			ERR_print_errors_fp(stderr);
 			return 0;
 		}
 
 		// Read Private key
-		b=BIO_new_mem_buf(key, key);
-		rsa=PEM_read_bio_RSAPrivateKey(b, 0, 0, 0);
+		b = BIO_new_mem_buf(key, key);
+		rsa = PEM_read_bio_RSAPrivateKey(b, NULL, 0, NULL);
 
-		ret=SSL_CTX_use_RSAPrivateKey(ctx, rsa);
+		ret = SSL_CTX_use_RSAPrivateKey(ctx, rsa);
 
 		BIO_free(b);
 		RSA_free(rsa);
 
-		if(ret<=0){
+		if(ret <= 0){
 			ERR_print_errors_fp(stderr);
 			return 0;
 		}
-
 
 		/* verify private key */
 		if(!SSL_CTX_check_private_key(ctx)){
@@ -264,20 +384,17 @@ public:
 		//End new lines
 
 		/* set the local certificate from CertFile */
-		if (SSL_CTX_use_certificate_file(ctx, CertFile, SSL_FILETYPE_PEM) <= 0)
-		{
+		if (SSL_CTX_use_certificate_file(ctx, CertFile, SSL_FILETYPE_PEM) <= 0){
 			ERR_print_errors_fp(stderr);
 			return 0;
 		}
 		/* set the private key from KeyFile (may be the same as CertFile) */
-		if (SSL_CTX_use_PrivateKey_file(ctx, KeyFile, SSL_FILETYPE_PEM) <= 0)
-		{
+		if (SSL_CTX_use_PrivateKey_file(ctx, KeyFile, SSL_FILETYPE_PEM) <= 0){
 			ERR_print_errors_fp(stderr);
 			return 0;
 		}
 		/* verify private key */
-		if (!SSL_CTX_check_private_key(ctx))
-		{
+		if (!SSL_CTX_check_private_key(ctx)){
 			fprintf(stderr, "Private key does not match the public certificate\n");
 			return 0;
 		}
@@ -295,6 +412,29 @@ public:
 		if(!work || !ssl)
 			return 0;
 
+		if(work == MYSSLWORK_WANT_READ){
+			int eid = SSL_accept(ssl);
+			if(eid == -1){
+				int sid = SSL_get_error(ssl, eid);
+				if(sid == SSL_ERROR_WANT_READ)
+					return OPENSSL_RECV_WAIT;
+				return -1;
+			}
+			work = MYSSLWORK_OK;
+			return OPENSSL_RECV_WAIT;
+		}
+
+		if(work == MYSSLWORK_WANT_WRITE){
+			int eid = SSL_connect(ssl);
+			if(eid == -1){
+				int sid = SSL_get_error(ssl, eid);
+				if(sid == SSL_ERROR_WANT_READ)
+					return OPENSSL_RECV_WAIT;
+				return -1;
+			}
+			work = MYSSLWORK_OK;
+		}
+
 		int ret = SSL_read(ssl, buf, sz), sret;
 		if(ret == -1){
 			sret = SSL_get_error(ssl, ret);
@@ -309,7 +449,26 @@ public:
 		if(!work || !ssl)
 			return 0;
 
-		return SSL_write(ssl, buf, sz);
+		if(work == MYSSLWORK_WANT_WRITE){// return OPENSSL_RECV_WAIT;
+			int eid = SSL_connect(ssl);
+			if(eid == -1){
+				int sid = SSL_get_error(ssl, eid);
+				if(sid == SSL_ERROR_WANT_READ)
+					return OPENSSL_RECV_WAIT;
+				return 0;
+			}
+			work = MYSSLWORK_OK;
+			return OPENSSL_RECV_WAIT;
+		}
+
+		int ret = SSL_write(ssl, buf, sz);
+		if(ret == -1){
+			int sret = SSL_get_error(ssl, ret);
+			if(sret == SSL_ERROR_WANT_WRITE)
+				ret = OPENSSL_RECV_WAIT;
+		}
+
+		return ret;
 	}
 
 	int Close(){
@@ -318,8 +477,9 @@ public:
 
 		work = 0;
 
-		if(ssl)
+		if(ssl){
 			SSL_shutdown(ssl);
+		}
 
 		return 1;
 	}
@@ -338,6 +498,7 @@ public:
 
 		ssl = 0;
 		ctx = 0;
+		work = 0;
 	}
 
 	~MySSL(){
@@ -351,25 +512,24 @@ void RsaCreateKeys(TString &pub, TString &sec){
 	RSA *rsa = RSA_generate_key(2048, RSA_F4, NULL, NULL);
 	int sz;
 
-	BIO *bp=BIO_new(BIO_s_mem());
-	BIO *bs=BIO_new(BIO_s_mem());
+	BIO *bp = BIO_new(BIO_s_mem());
+	BIO *bs = BIO_new(BIO_s_mem());
 
 	PEM_write_bio_RSA_PUBKEY(bp, rsa);
 	PEM_write_bio_RSAPrivateKey(bs, rsa, 0, 0, 0, 0, 0);
 
 	// pub
-	sz=BIO_ctrl_pending(bp);
+	sz = BIO_ctrl_pending(bp);
 	pub.Reserv(sz);
 	BIO_read(bp, pub, sz);
 
 	// sec
-	sz=BIO_ctrl_pending(bs);
+	sz = BIO_ctrl_pending(bs);
 	sec.Reserv(sz);
 	BIO_read(bs, sec, sz);
 
 	BIO_free(bp);
 	BIO_free(bs);
-
 	RSA_free(rsa);
 
 	return ;
@@ -377,11 +537,11 @@ void RsaCreateKeys(TString &pub, TString &sec){
 
 int RsaSaveCreateKeys(VString pubf, VString secf){
 	TString pub, sec;
-	int ret=1;
+	int ret = 1;
 
 	RsaCreateKeys(pub, sec);
-	ret&=SaveFile(pubf, pub)>0;
-	ret&=SaveFile(secf, sec)>0;
+	ret &= SaveFile(pubf, pub) > 0;
+	ret &= SaveFile(secf, sec) > 0;
 	return ret;
 }
 
@@ -394,7 +554,7 @@ TString RsaOperation(int type, VString key, VString text){
 	BIO *b = BIO_new_mem_buf(key, key);
 	int sz = 0;
 
-	if(type<2)
+	if(type < 2)
 		r = PEM_read_bio_RSA_PUBKEY(b, &rsa, 0, 0);
 	else
 		r = PEM_read_bio_RSAPrivateKey(b, &rsa, 0, 0);
@@ -411,30 +571,30 @@ TString RsaOperation(int type, VString key, VString text){
 		//if(!r)
 		//	return MString();
 		ret.Reserv(RSA_size(rsa));
-		sz=RSA_public_encrypt(text, text, ret, rsa, RSA_PKCS1_PADDING);
+		sz = RSA_public_encrypt(text, text, ret, rsa, RSA_PKCS1_PADDING);
 	break;
 	case 1:
 		//PEM_read_bio_RSA_PUBKEY(b, &rsa, 0, 0);
 		ret.Reserv(RSA_size(rsa));
-		sz=RSA_public_decrypt(text, text, ret, rsa, RSA_PKCS1_PADDING);
+		sz = RSA_public_decrypt(text, text, ret, rsa, RSA_PKCS1_PADDING);
 	break;
 	case 2:
 		//PEM_read_bio_RSAPrivateKey(b, &rsa, 0, 0);
 		ret.Reserv(RSA_size(rsa));
-		sz=RSA_private_encrypt(text, text, ret, rsa, RSA_PKCS1_PADDING);
+		sz = RSA_private_encrypt(text, text, ret, rsa, RSA_PKCS1_PADDING);
 	break;
 	case 3:
 		//PEM_read_bio_RSAPrivateKey(b, &rsa, 0, 0);
 		ret.Reserv(RSA_size(rsa));
-		sz=RSA_private_decrypt(text, text, ret, rsa, RSA_PKCS1_PADDING);
+		sz = RSA_private_decrypt(text, text, ret, rsa, RSA_PKCS1_PADDING);
 	break;
 	}
 	
 	BIO_free(b);
 	RSA_free(rsa);
 
-	if(sz==-1){
-		int err=ERR_get_error();
+	if(sz == -1){
+		int err = ERR_get_error();
 		ERR_error_string(ret, ret);
 	}
 
@@ -472,15 +632,20 @@ void test_rsa(){
 TString AesEncode(VString line, VString ckey, VString ivec){
 	TString ret;
 	ret.Reserv(line.sz*2);
-	int retlen=0, retlenf=0;
+	int retlen = 0, retlenf = 0;
 
 	if(!ckey || !ivec)
 		return TString();
 
-	EVP_CIPHER_CTX ctx;
-	EVP_EncryptInit(&ctx, EVP_aes_128_cbc(), ckey, ivec);
-	EVP_EncryptUpdate(&ctx, ret, &retlen, line, line);
-	EVP_EncryptFinal(&ctx, ret.data+retlen, &retlenf);
+	EVP_CIPHER_CTX *ctx;
+	ctx = EVP_CIPHER_CTX_new();
+	//EVP_CIPHER_CTX_init(ctx);
+
+	EVP_EncryptInit(ctx, EVP_aes_128_cbc(), ckey, ivec);
+	EVP_EncryptUpdate(ctx, ret, &retlen, line, line);
+	EVP_EncryptFinal(ctx, ret.data+retlen, &retlenf);
+
+	EVP_CIPHER_CTX_free(ctx);
 
 	ret.Reserv(retlen+retlenf);
 	return ret;
@@ -489,18 +654,22 @@ TString AesEncode(VString line, VString ckey, VString ivec){
 TString AesDecode(VString line, VString ckey, VString ivec){
 	TString ret;
 	ret.Reserv(line.sz+16);
-	int retlen=0, retlenf=0;
+	int retlen = 0, retlenf = 0;
 
 	if(!ckey || !ivec)
 		return TString();
 
-	EVP_CIPHER_CTX ctx;
-	EVP_DecryptInit(&ctx, EVP_aes_128_cbc(), ckey, ivec);
-	EVP_DecryptUpdate(&ctx, ret, &retlen, line, line);
-	EVP_DecryptFinal(&ctx, ret.data+retlen, &retlenf);
-	EVP_CIPHER_CTX_cleanup(&ctx);
+	EVP_CIPHER_CTX *ctx;
+	ctx = EVP_CIPHER_CTX_new();
 
-	ret.Reserv(retlen+retlenf);
+	EVP_DecryptInit(ctx, EVP_aes_128_cbc(), ckey, ivec);
+	EVP_DecryptUpdate(ctx, ret, &retlen, line, line);
+	EVP_DecryptFinal(ctx, ret.data+retlen, &retlenf);
+	
+	//EVP_CIPHER_CTX_cleanup(&ctx);
+	EVP_CIPHER_CTX_free(ctx);
+
+	ret.Reserv(retlen + retlenf);
 	return ret;
 }
 
@@ -541,7 +710,7 @@ int ProgSecureInit(){
 		SaveFile("secure/_init_0.key", RandGetUniqLine());
 	}
 
-	_ssl_init_0=LoadFile("secure/_init_0.key");
+	_ssl_init_0 = LoadFile("secure/_init_0.key");
 
 	// create RSA keys
 	if(!IsFile("secure/_init_1.key") || !IsFile("secure/_init_2.key")){
@@ -550,8 +719,8 @@ int ProgSecureInit(){
 		SaveFile("secure/_init_2.key", AesEncode(LoadFile("secure/_init_2.key"), _ssl_init_0, _ssl_init_s));
 	}
 
-	_ssl_init_1=LoadFile("secure/_init_1.key");
-	_ssl_init_2=LoadFile("secure/_init_2.key");
+	_ssl_init_1 = LoadFile("secure/_init_1.key");
+	_ssl_init_2 = LoadFile("secure/_init_2.key");
 	
 	return _ssl_init_0 && _ssl_init_1 && _ssl_init_2;
 }
@@ -645,11 +814,11 @@ int OpenSSLCreateRSAPrivateKey(TString &r_key, int bits = 2048){
 
 	// save key
 	int sz;
-	BIO *bio=BIO_new(BIO_s_mem());
+	BIO *bio = BIO_new(BIO_s_mem());
 
 	PEM_write_bio_RSAPrivateKey(bio, rsa, 0, 0, 0, 0, 0);
 
-	sz=BIO_ctrl_pending(bio);
+	sz = BIO_ctrl_pending(bio);
 	r_key.Reserv(sz);
 	BIO_read(bio, r_key, sz);
 	
@@ -662,15 +831,15 @@ int OpenSSLCreateRSAPrivateKey(TString &r_key, int bits = 2048){
 int OpenSSLCreateCertificateRequest(VString r_key, TString &r_req, VString ca, VString co, VString cn){
 	// http://stackoverflow.com/questions/256405/programmatically-create-x509-certificate-using-openssl
 	
-	int ret=0;
-
 	EVP_PKEY * pkey;
+	int ret = 0;
+
 	pkey = EVP_PKEY_new();
 
 	// read private key
-	BIO *b=BIO_new_mem_buf(r_key, r_key), *bio;
+	BIO *b = BIO_new_mem_buf(r_key, r_key), *bio;
 
-	int r=0, sz;
+	int r = 0, sz;
 	if(!PEM_read_bio_PrivateKey(b, &pkey, 0, 0)){
 		BIO_free(b);
 		EVP_PKEY_free(pkey);
@@ -693,24 +862,24 @@ int OpenSSLCreateCertificateRequest(VString r_key, TString &r_req, VString ca, V
 	X509_NAME * name;
 	name = X509_REQ_get_subject_name(x509);
 
-	X509_NAME_add_entry_by_txt(name, "C",  MBSTRING_ASC, (unsigned char *)ca, -1, -1, 0);
-	X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC, (unsigned char *)co, -1, -1, 0);
-	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char *)cn, -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "C",  MBSTRING_ASC, (unsigned char *)ca, ca, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC, (unsigned char *)co, co, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char *)cn, cn, -1, 0);
 
 	// X509_set_issuer_name(x509, name);
 
-	if(!X509_REQ_sign(x509, pkey, EVP_sha1()))
+	if(!X509_REQ_sign(x509, pkey, EVP_sha256()))
 		goto free_all;
 
 	// save cert
-	bio=BIO_new(BIO_s_mem());
+	bio = BIO_new(BIO_s_mem());
 	PEM_write_bio_X509_REQ(bio, x509);
-	sz=BIO_ctrl_pending(bio);
+	sz = BIO_ctrl_pending(bio);
 	r_req.Reserv(sz);
 	BIO_read(bio, r_req, sz);
 	BIO_free(bio);
 
-	ret=1;
+	ret = 1;
 
 free_all:
 	X509_REQ_free(x509);
@@ -725,15 +894,15 @@ int OpenSSLCreateCACertificate(VString r_key, TString &r_req, VString ca, VStrin
 	// http://stackoverflow.com/questions/256405/programmatically-create-x509-certificate-using-openssl
 	// http://www.codepool.biz/security/how-to-use-openssl-to-sign-certificate.html
 	
-	int ret=0;
-
 	EVP_PKEY * pkey;
+	int ret = 0;
+
 	pkey = EVP_PKEY_new();
 
 	// read private key
-	BIO *b=BIO_new_mem_buf(r_key, r_key), *bio;
+	BIO *b = BIO_new_mem_buf(r_key, r_key), *bio;
 
-	int r=0, sz;
+	int r = 0, sz;
 	if(!PEM_read_bio_PrivateKey(b, &pkey, 0, 0)){
 		BIO_free(b);
 		EVP_PKEY_free(pkey);
@@ -756,24 +925,24 @@ int OpenSSLCreateCACertificate(VString r_key, TString &r_req, VString ca, VStrin
 	X509_NAME * name;
 	name = X509_get_subject_name(x509);
 
-	X509_NAME_add_entry_by_txt(name, "C",  MBSTRING_ASC, (unsigned char *)ca, -1, -1, 0);
-	X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC, (unsigned char *)co, -1, -1, 0);
-	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char *)cn, -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "C",  MBSTRING_ASC, (unsigned char *)ca, ca, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC, (unsigned char *)co, co, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char *)cn, cn, -1, 0);
 
 	X509_set_issuer_name(x509, name);
 
-	if(!X509_sign(x509, pkey, EVP_sha1()))
+	if(!X509_sign(x509, pkey, EVP_sha256()))
 		goto free_all;
 
 	// save cert
-	bio=BIO_new(BIO_s_mem());
+	bio = BIO_new(BIO_s_mem());
 	PEM_write_bio_X509(bio, x509);
-	sz=BIO_ctrl_pending(bio);
+	sz = BIO_ctrl_pending(bio);
 	r_req.Reserv(sz);
 	BIO_read(bio, r_req, sz);
 	BIO_free(bio);
 
-	ret=1;
+	ret = 1;
 
 free_all:
 	X509_free(x509);
@@ -786,7 +955,7 @@ free_all:
 
 bool OpenSSLSignCertificateLoadCA(X509 ** px509, VString ca_cert){
 	// read ca
-	BIO *b=BIO_new_mem_buf(ca_cert, ca_cert);
+	BIO *b = BIO_new_mem_buf(ca_cert, ca_cert);
 	bool ret = (PEM_read_bio_X509(b, px509, 0, 0)!=0);
 	BIO_free(b);
     return ret;
@@ -826,19 +995,31 @@ bool OpenSSLSignCertificateLoadX509Req(X509_REQ **ppReq, VString req){
     return ret;
 }
 
-int OpenSSLSignCertificateDoX509Sign(X509 *cert, EVP_PKEY *pkey, const EVP_MD *md)
-{
-    int rv;
-    EVP_MD_CTX mctx;
+int OpenSSLSignCertificateDoX509Sign(X509 *cert, EVP_PKEY *pkey, const EVP_MD *md){
+    EVP_MD_CTX *mctx;
+	int rv;
+
+#if OPENSSL_VERSION_NUMBER >= 0x1010000fL
+    mctx = EVP_MD_CTX_new();
+#else
+	EVP_MD_CTX _mctx;
+	mctx = &_mctx;
+	EVP_MD_CTX_init(mctx);
+#endif
     EVP_PKEY_CTX *pkctx = NULL;
- 
-    EVP_MD_CTX_init(&mctx);
-    rv = EVP_DigestSignInit(&mctx, &pkctx, md, NULL, pkey);
+
+    rv = EVP_DigestSignInit(mctx, &pkctx, md, NULL, pkey);
  
     if (rv > 0)
-        rv = X509_sign_ctx(cert, &mctx);
-    EVP_MD_CTX_cleanup(&mctx);
-    return rv > 0 ? 1 : 0;
+        rv = X509_sign_ctx(cert, mctx);
+
+#if OPENSSL_VERSION_NUMBER >= 0x1010000fL
+	EVP_MD_CTX_free(mctx);
+#else
+	EVP_MD_CTX_cleanup(mctx);
+#endif
+    
+	return rv > 0 ? 1 : 0;
 }
 
 int OpenSSLSignCertificate(TString &r_cert, VString ca_cert, VString ca_key, VString r_req, int serial){
@@ -892,7 +1073,7 @@ int OpenSSLSignCertificate(TString &r_cert, VString ca_cert, VString ca_key, VSt
     if (!ret) goto free_all;
  
     // sign cert
-    if (!OpenSSLSignCertificateDoX509Sign(cert, pkey, EVP_sha1()))
+    if (!OpenSSLSignCertificateDoX509Sign(cert, pkey, EVP_sha256()))
         goto free_all;
  
     //out = BIO_new_file(szUserCert,"w");
@@ -915,5 +1096,5 @@ free_all:
     X509_free(ca);
     EVP_PKEY_free(pkey);
 
-	return (ret == 1);
+	return (ret > 0);
 }

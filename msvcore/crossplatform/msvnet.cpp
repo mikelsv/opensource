@@ -42,6 +42,24 @@ bool ifsend(SOCKET sock, unsigned int wt){
 	return select(sock+1, 0, &rfds, 0, &tm)!=0;
 }
 
+void gettip(SOCKET sock, unsigned int &ip, unsigned short &port){
+	sockaddr_in from; int fromlen = sizeof(from);
+
+	getsockname(sock, (struct sockaddr*)&from, (socklen_t*)&fromlen);
+
+	ip = ntohl(from.sin_addr.s_addr);
+	port = htons(from.sin_port);
+}
+
+void getcip(SOCKET sock, unsigned int &ip, unsigned short &port){
+	sockaddr_in from; int fromlen = sizeof(from);
+
+	getpeername(sock, (struct sockaddr*)&from, (socklen_t*)&fromlen);
+
+	ip = ntohl(from.sin_addr.s_addr);
+	port = htons(from.sin_port);
+}
+
 // Connect Ip
 class ConIp{
 public:
@@ -163,7 +181,7 @@ public:
 		int err;// if(!ip) return 0;
 		SOCKADDR_IN csocket;
 #ifdef WIN32
-		SOCKET sock = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+		SOCKET sock = WSASocket(AF_INET, type, proto, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
 		SOCKET sock = socket(AF_INET, type, proto);
 #endif
@@ -407,15 +425,15 @@ MString ipitos(unsigned int val){
 }
 
 
-MString HttpToVal(VString line){
-	MString ret;
+TString HttpToVal(VString line){
+	TString ret;
 	ret.Reserv(prmf_httptoval(0, 0, line, line));
 	prmf_httptoval(ret, ret, line, line);
 	return ret;
 }
 
-MString HttpToValNoPlus(VString line){
-	MString ret;
+TString HttpToValNoPlus(VString line){
+	TString ret;
 	ret.Reserv(prmf_httptoval(0, 0, line, line, 1));
 	prmf_httptoval(ret, ret, line, line, 1);
 	return ret;

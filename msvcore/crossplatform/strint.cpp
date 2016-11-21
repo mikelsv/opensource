@@ -309,7 +309,7 @@ TString utftotr(const VString ln){
 
 // UTF Slash to Char
 TString usltochar(VString ln){
-	unsigned char *to=ln.uchar()+ln.size(), *line=ln.uchar(); unsigned int r; int lss=0;
+	unsigned char *to=ln.uchar()+ln.size(), *line=ln.uchar(); int lss=0;
 
 	for(line; line<to; line++){
 		if(*line == '\\' && line + 5 <= to && *(line + 1) == 'u'){

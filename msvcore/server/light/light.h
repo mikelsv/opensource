@@ -65,7 +65,6 @@ public:
 				acc.tip=ntohl(from.sin_addr.s_addr); acc.tport=htons(from.sin_port);
 
 				Accept(acc);
-				closesocket(socks);
 			}
 		}
 
@@ -75,6 +74,7 @@ public:
 	virtual int Accept(LightServerAccept &acc){
 		Itos it; it.Add("LightServer(", lightserver_versions[0].ver, ", ", lightserver_versions[0].date,")");
 		send(acc.sock, it.ret, it.ret, 0);
+		closesocket(acc.sock);
 		return 0;
 	}
 
@@ -85,16 +85,48 @@ public:
 int USEMSV_LIGHTSERVER_HTTP_CALL(LightServerAccept &acc, VString head, VString post);
 #endif
 
-class LightServerHttp : public LightServer{
-	MySSL ssl;
+
+class LightServerHttp : public LightServer, public MSVMCOT{
+
+	// certs
+	static VString cert_cert, cert_key;
+
+public:
+	void SetCerts(VString cert, VString key){
+		cert_cert = cert;
+		cert_key = key;
+	}
 
 	virtual int Accept(LightServerAccept &acc){
+		// Call Accept() in new Thread.
+
+		LightServerAccept *nacc = new LightServerAccept;
+		*nacc = acc;
+		MCOTS(nacc);
+
+		return 1;
+	}
+
+	virtual DWORD MCOT(LPVOID lp){
+		LightServerAccept *acc = (LightServerAccept*)lp;
+		print("New connection!\r\n");
+		AcceptData(*acc);
+		print("Connection close!\r\n");
+		closesocket(acc->sock);
+		delete acc;
+		return 0;
+	}
+
+	virtual int AcceptData(LightServerAccept &acc){
 		unsigned char buf[S32K];
 		unsigned int pos = 0;
+		MySSL ssl;
 
 		// Use ssl sertificate
-		ssl.Release();
-		ssl.AcceptFile(acc.sock, "cert/cert_cert.pem", "cert/cert_key.pem");
+		if(cert_cert && cert_key){
+			ssl.Release();
+			ssl.Accept(acc.sock, cert_cert, cert_key);
+		}
 
 		while(1){
 			// read data from socket
@@ -123,15 +155,35 @@ class LightServerHttp : public LightServer{
 				else
 					continue;
 
+				head.sz += 2;
+
 #ifdef USEMSV_LIGHTSERVER_HTTP_CALL
 				if(USEMSV_LIGHTSERVER_HTTP_CALL(acc, head, post)){
-					VString shead = "HTTP/1.0 200 OK\r\n"
-						"Connection: close\r\n";
+					SString shead;
+					//VString shead = "HTTP/1.0 200 OK\r\n"
+//						"Connection: close\r\n";
+					
+					int ka = PartLineDoubleUp(head, "Connection: ", "\r\n").compareu("Keep-Alive");
+
 					VString sdata = "{}";
+					shead.Format("HTTP/1.1 200 OK\r\n"
+						"Connection: %s\r\n"
+						"Content-Length: %d\r\n"
+						"\r\n",
+						ka ? "close" : "keep-alive",
+						sdata.sz
+						);
 
 					ssl.Send(shead, shead);
-					ssl.Send("\r\n", 2);
+					//ssl.Send("\r\n", 2);
 					ssl.Send(sdata, sdata);
+
+					// Keep-Alive
+					if(ka){
+						print("Keep-Alive.\r\n");
+						pos = 0;
+						continue;
+					}
 
 					ssl.Close();
 					return 0;
@@ -147,7 +199,6 @@ class LightServerHttp : public LightServer{
 				ssl.Send(sdata, sdata);
 
 				ssl.Close();
-
 				return 0;
 			}
 		}
@@ -158,3 +209,6 @@ class LightServerHttp : public LightServer{
 
 
 };
+
+VString LightServerHttp::cert_cert;
+VString LightServerHttp::cert_key;

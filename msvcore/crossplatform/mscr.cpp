@@ -1046,6 +1046,7 @@ public:
 
 
 // Lock
+#define UGLOCKT() UGLock __l(this);
 #define UGLOCK(l) UGLock __l(l);
 #define UGLOCK2(l) UGLock __l2(l);
 #define UGLOCKD(l, r) UGLock __ld(l); UGLock __rd(r);

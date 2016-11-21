@@ -18,6 +18,9 @@ DWORD GetCurrentThreadId(){ return 0; }
 #endif
 
 int stdmkdir(const char *path, int mode){ return mkdir(path, mode); }
+#define _unlink unlink
+#define _chdir chdir
+#define _getcwd getcwd
 
 #ifdef USEMSV_ANDROID
 int _TSYS=TSYS_ANDROID;
@@ -309,17 +312,17 @@ int mainp(int args, char* arg[], ILink &link){
 	} //Log(debug_log, commandline);
 
 	link.Link(commandline);
-	_thispath.Reserv(S4K); _thispath=getcwd(_thispath, _thispath); cslash(_thispath);
-	_procpath=link.GetOnlyPath(); if(_procpath) chdir(_procpath);
-	_procpath.Reserv(S4K); _procpath=getcwd(_procpath, _procpath); cslash(_procpath);
-	if(_thispath) chdir(_thispath);
+	_thispath.Reserv(S4K); _thispath=_getcwd(_thispath, _thispath); cslash(_thispath);
+	_procpath=link.GetOnlyPath(); if(_procpath) _chdir(_procpath);
+	_procpath.Reserv(S4K); _procpath=_getcwd(_procpath, _procpath); cslash(_procpath);
+	if(_thispath) _chdir(_thispath);
 	//print("_thispath:", _thispath, "\r\n");
 	//print("_procpath:", _procpath, "\r\n");
 
 	if(_TSYS==TSYS_LIN){
 		MString tmp;
 		sstat64 stt=GetFileInfo(tmp.Add("/usr/share/", PROJECTNAME));
-		if((stt.st_mode&S_IFMT)==S_IFDIR){ _thispath=tmp; chdir(_thispath); }		
+		if((stt.st_mode&S_IFMT)==S_IFDIR){ _thispath=tmp; _chdir(_thispath); }		
 	}
 	
 	//if(_TSYS==TSYS_ANDROID){
@@ -397,7 +400,7 @@ int mainp(int args, char* arg[], ILink &link){
 		if(l=="--usemsv"){ print("MSV Activate. Programm will be stopped. For help use: --help.\r\n"); usemsv=1; lto=1; }
 		
 		if(l=="--uselang" && t){ _TSYSL=t; lto=2; }
-		if(l=="--usepath" && t){ _thispath=t; chdir(_thispath); lto=2; }
+		if(l=="--usepath" && t){ _thispath=t; _chdir(_thispath); lto=2; }
 		if(l=="--useplang"){ msv_parse_lang=1; lto=1; }
 	}
 

@@ -70,17 +70,17 @@ unsigned int prmf_dtos(unsigned char *ret, unsigned int rsz, double val, int ml)
 		val *= -1;
 	}
 
-	int64 val64 = val, ival;
-	int64 pw = pow((double)10, ml);
+	int64 val64 = (int64)val, ival;
+	int64 pw = (int64)pow((double)10, ml);
 	val -= (int64) val;
 	val *= pw;
 	val = floor(val);
 	if(val >= pw){
-		ival = val;
+		ival = (int64)val;
 		ival -= pw;
 		val64 ++;
 	} else
-		ival = val;
+		ival = (int64)val;
 
 	while(ml && ival % 10 == 0){
 		ival /= 10;
@@ -141,9 +141,9 @@ unsigned int prmf_htob(unsigned char *ret, unsigned int rsz, unsigned char*line,
 	if(sz%2) to--;
 
 	while(ln<to){
-		*ret=16*((*ln>47 && *ln<58) ? *ln-48 : *ln-87); ln++;
-		*ret+=((*ln>47 && *ln<58) ? *ln-48 : *ln-87); ln++;
-		ret++;
+		*ret = 16 * ((*ln>47 && *ln<58) ? *ln-48 : (*ln >= 'a' && *ln <= 'z' ? *ln - 87 : *ln - 'A' + 10)); ln++;
+		*ret += ((*ln>47 && *ln<58) ? *ln-48 : (*ln >= 'a' && *ln <= 'z' ? *ln - 87 : *ln - 'A' + 10)); ln++;
+		ret ++;
 	}
 
 	if(sz%2) prmdadd_c(*ln);

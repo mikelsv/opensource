@@ -47,9 +47,17 @@ int normalpath(char*file, int asz, char *in, int ins, bool r=0, int opt=0);
 
 #ifdef WIN32
 inline int fileeof(HFILE hfile){ return chsize64(hfile, tell64(hfile)); }
+/*int _open(char* file, int op, int pm){
+	int fl = 0;
+	//if(_sopen_s(&fl, file, op, 0x40, pm)) // _SH_DENYNO
+	//	return fl;
+	return fl = _open(
+	return -1;
+}*/
 #else
 inline int fileeof(HFILE hfile){ return ftruncate(hfile, lseek64(hfile, 0, SEEK_CUR)); }
-#endif
+#endif 
+
 
 HFILE CreateFile(VString file, int op, int pm){ if(!file) return -1; return _open(TString(file), op|O_BINARY, pm); }
 int ReadFile(HFILE fl, void* buf, unsigned int sz){ return _read(fl, buf, sz); }
@@ -98,7 +106,7 @@ bool IsDir(VString path){ sstat64 stt = GetFileInfo(TString(path)); return (stt.
 int MkDir(VString file, unsigned int mode=0){ return stdmkdir(TString(file), mode); }
 
 
-int DeleteFile(VString file){ LFSNORMALPATH(it, file); return unlink(file); }
+int DeleteFile(VString file){ LFSNORMALPATH(it, file); return _unlink(file); }
 
 int MoveFile(VString from, VString to){
 	LFSNORMALPATH(it, from);

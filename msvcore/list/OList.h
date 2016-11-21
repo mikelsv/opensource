@@ -108,6 +108,28 @@ public:
 	//  AddToList<option> ();
 	//}
 
+	bool Is(PROCSTRUCTCN*el){
+		if(!el)
+			return 0; // out lists
+
+		UGLOCK(this);
+
+		OmatrixBlock *nw = data._a;
+		int num;
+
+		for(nw; nw; nw = nw->_n){
+			if(nw->ismy(el))
+				break;
+		}
+		
+		if(!nw)
+			return 0;
+
+		num = nw->getn(el);
+
+		return nw->get(num) == 1;
+	}
+
 
 	bool Del(PROCSTRUCTCN*el){
 		if(!el) return 0; // out lists
@@ -132,6 +154,7 @@ public:
 
 	PROCSTRUCTCN* Next(PROCSTRUCTCN*el){
 		UGLOCK(this);
+
 		if(!el){
 			if(!data._a) return 0;
 			el=((PROCSTRUCTCN*)(data._a->data));
@@ -141,8 +164,10 @@ public:
 
 		OmatrixBlock*nw=data._a; unsigned int num;
 		for(nw; nw; nw=nw->_n){
-			if(nw->ismy(el)){ break; }
-		} if(!nw) return 0;
+			if(nw->ismye(el)){ break; }
+		}
+		if(!nw)
+			return 0;
 
 		num=nw->getn(el);
 		for(num; num<nw->a; num++){
@@ -153,7 +178,7 @@ public:
 		}
 
 		if(nw->_n)
-			return Next(((PROCSTRUCTCN*)(data._a->data)));
+			return Next(((PROCSTRUCTCN*)(nw->_n->data)) - 1);
 
 		return 0;
 	}

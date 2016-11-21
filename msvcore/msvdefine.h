@@ -180,6 +180,11 @@ struct _msvcore_memcon_data{
 	static int64 amcount, aucount, afcount;
 
 	void init(int id, const char *name){
+		if(!name){
+			name = "<Unknown!!!>";
+			printf("\r\nGLOBALERROR: Memory control type name is unknown!");
+		}
+
 		this->id = id;
 		this->name = name;
 		mcount = 0;
@@ -679,7 +684,7 @@ double stod(char*line, unsigned int size=0, int radix=10);
 // Test time: tbtime(); tctime(); tetime(); int sec=sec, millim=micro sec.
 #define tbtime timeb ft, fte; int tbtime_sec, tbtime_millim, tbtime_result; ftime(&ft); // print("Time: ", itos(sec*1000+millitm), "ms.\r\n");
 #define tctime ftime(&ft); // continue
-#define tetime ftime(&fte); tbtime_sec=fte.time-ft.time; tbtime_millim=fte.millitm-ft.millitm; if(fte.millitm<ft.millitm){ tbtime_millim+=1000; tbtime_sec--; } tbtime_result = tbtime_sec * 1000 + tbtime_millim;
+#define tetime ftime(&fte); tbtime_sec=(int)(fte.time-ft.time); tbtime_millim=fte.millitm-ft.millitm; if(fte.millitm<ft.millitm){ tbtime_millim+=1000; tbtime_sec--; } tbtime_result = tbtime_sec * 1000 + tbtime_millim;
 // print()
 //#define tcetime ftime(&fte); sec=fte.time-ft.time; millim=fte.millitm-ft.millitm; if(fte.millitm<ft.millitm){ millim+=1000; sec--; }
 
@@ -698,7 +703,7 @@ OMatrixT(){ _a=0; _e=0; }
 		el->_n=0; el->_p=_e; _e->_n=el; _e=el; return 1;
 	}
 
-	bool OMAddP(OMatrix *&_a, OMatrix *&_e, OMatrix*el){
+	static bool OMAddP(OMatrix *&_a, OMatrix *&_e, OMatrix*el){
 		if(!_a){ _a=el; _e=el; el->_p=0; el->_n=0; return 1;}
 		//_e->_n=el; el->_p=_e; el->_n=0; _e=el; return 1;
 		el->_n=0; el->_p=_e; _e->_n=el; _e=el; return 1;
@@ -770,12 +775,24 @@ OMatrixT(){ _a=0; _e=0; }
 	void OMClearS(){ _a=0; _e=0; }
 };
 
+
+#define OMatrixTemplateAdd(_a, _e, el) \
+	if(!_a){ _a=el; _e=el; el->_p=0; el->_n=0; } \
+	else {	el->_n=0; el->_p=_e; _e->_n=el; _e=el; }
+
+#define OMatrixTemplateDel(_a, _e, el) \
+	if(el->_n) el->_n->_p=el->_p; else if(el==_e) _e=el->_p; \
+	if(el->_p) el->_p->_n=el->_n; else if(el==_a) _a=el->_n;
+
+	
+
 struct OmatrixBlock{
 	OmatrixBlock *_p, *_n;
 	unsigned int u, a, sz; // use, all, size
-	unsigned char data[0];
+	unsigned char data[];
 
 	int ismy(void*d){ if(d>=&data[0] && d<&data[sz]) return 1; return 0; }
+	int ismye(void*d){ if(d>=&data[0] && d<=&data[sz]) return 1; return 0; }
 	int get(unsigned int num){ return num<a && data[sz+num/8]&(1 << (num%8)); }
 	unsigned int getn(void *d){ return (unsigned int)(((unsigned char*)d-&data[0])/(sz/a)); }
 	int set(unsigned int num, int val){

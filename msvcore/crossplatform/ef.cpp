@@ -486,10 +486,10 @@ while(pos<retsz){
 i=*(unsigned int*)(ret+pos); pos+=4;
 if(line.compare((char*)ret+pos, i)){ pos+=i; if(pos>=_retsz) return MString();
 	i=*(unsigned int*)(ret+pos); pos+=4; retd+=MString(ret+pos, i); pos+=i;
-} else { pos+=i;  if(pos>=_retsz) return retd;
+} else { pos+=i;  if(pos>=_retsz) return MString(retd.oneline(), retd.size());
 	i=*(unsigned int*)(ret+pos); pos+=4+i;
 }}
-return retd;
+return MString(retd.oneline(), retd.size());
 }
 
 void DelRet(){

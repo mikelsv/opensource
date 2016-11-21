@@ -636,7 +636,7 @@ void* VData(){
 int ModType(int nt){
 if(type==nt) return 1;
 	switch(nt){
-	case DATATYPE_STR:{ MString ms=*this; ToType(ms, DATATYPE_STR); break;}
+	case DATATYPE_STR:{ MString ms=this->operator MString(); ToType(ms, DATATYPE_STR); break;}
 	case DATATYPE_BYTE:{ unsigned char c=*this; ToType((char*)&c, 1, DATATYPE_BYTE); break;}
 	case DATATYPE_USHORT:{ unsigned short c=*this; ToType((char*)&c, 2, DATATYPE_USHORT); break;}
 	case DATATYPE_SHORT:{ short c=*this; ToType((char*)&c, 2, DATATYPE_SHORT); break;}
@@ -758,16 +758,18 @@ LString ret;
 	switch(type){
 //	case DATATYPE_STR:	ret+=(*(MString*)data); break;
 //	case DATATYPE_CHAR: for(int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(char*)data); } return ret;
-	case DATATYPE_BYTE: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(unsigned char*)data); } return ret;
-	case DATATYPE_USHORT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(unsigned short*)data); } return ret;
-	case DATATYPE_SHORT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(short*)data); } return ret;
-	case DATATYPE_UINT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(unsigned int*)data); } return ret;
-	case DATATYPE_INT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(int*)data); } return ret;
-	case DATATYPE_INT64: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(int64*)data); } return ret;
-	case DATATYPE_FLOAT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=dtos(*(float*)data); } return ret;
-	case DATATYPE_DOUBLE: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=dtos(*(double*)data); } return ret;
-	case DATATYPE_RGB: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos((*(RGBQUAD*)&data).rgbRed*S64K+(*(RGBQUAD*)&data).rgbGreen*256+(*(RGBQUAD*)&data).rgbBlue, 16); } return ret;
+	case DATATYPE_BYTE: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(unsigned char*)data); }
+	case DATATYPE_USHORT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(unsigned short*)data); }
+	case DATATYPE_SHORT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(short*)data); }
+	case DATATYPE_UINT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(unsigned int*)data); }
+	case DATATYPE_INT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(int*)data); }
+	case DATATYPE_INT64: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos(*(int64*)data); }
+	case DATATYPE_FLOAT: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=dtos(*(float*)data); }
+	case DATATYPE_DOUBLE: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=dtos(*(double*)data); }
+	case DATATYPE_RGB: for(unsigned int i=0; i<sz; i++){if(i) ret+=" "; ret+=itos((*(RGBQUAD*)&data).rgbRed*S64K+(*(RGBQUAD*)&data).rgbGreen*256+(*(RGBQUAD*)&data).rgbBlue, 16); }
 	}
+
+	return MString(ret.oneline(), ret.size());
 }
 return MString();
 }

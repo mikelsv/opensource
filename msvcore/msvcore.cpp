@@ -53,7 +53,7 @@ int main(int args, char* arg[]){
 // #define USEMSV_FLASH - use for Crossbridge compile
 
 // Teplates:
-// #define USEMSV_ITOS	- use Itos templates
+// #define USEMSV_ITOS	- use Itos templates. Deprecated! Use: SString.
 
 // Formats:
 // #define USEMSV_XDATACONT - use XDataContainer ( Parsers: XML, Json )
@@ -73,13 +73,15 @@ int main(int args, char* arg[]){
 // #define USEMSV_MLIST - use MList template dunamic array
 // #define USEMSV_OLIST - use OList template dunamic array
 // #define USEMSV_ULIST - use UList template dynamic array. // defined by default 
-// #define USEMSV_FSTRING - use FString class // defined by default 
+// DELETED #define USEMSV_FSTRING - use FString class // defined by default 
 
 // Server:
 // #define USEMSV_STORMSERVER - use storm server
 // #define USEMSV_HTTP - use http functions
 // #define USEMSV_WEBSOCKETS - use WebSockets client and listen_websockets for storm
 // #define USEMSV_LIGHTSERVER - use light server
+
+// #define USEMSV_TGBOTS		-	use Telegram Bots
 
 // Network
 // #define USEMSV_TRAFFIX - use Traffix class
@@ -106,9 +108,18 @@ int main(int args, char* arg[]){
 // #define USEMSV_NESTAPI - use Nest API
 // #define USEMSV_NESTAPI2 - use Nest API v.2
 
+//
+// #define USEMSV_UNSTABEBIGINT - unstable big int: val * 10 ^ pow.
+
 // Special:
 // #define USEMSV_BUFECHO - Input / Output buffer echo control
 // #define USEMSV_TESTS - Testing
+
+// Development.
+// #define USEMSV_ASTRING_DEV - New AutoString classes.
+// #define USEMSV_HASHLIST - Hash List.
+// #define USEMSV_HASHTREE - Hash Tree.
+
 
 #ifndef PROJECTNAME
 	#error Please set #define PROJECTNAME "you_project_name"
@@ -166,6 +177,10 @@ int main(int args, char* arg[]){
 	#include "crossplatform/itos.cpp"
 #endif
 
+#ifdef USEMSV_ASTRING_DEV
+	#include "list/AString.cpp"
+#endif
+
 // intercept malloc & free
 #ifdef USEMSV_INTERCEPT
 	#include "special/asmp.h"
@@ -217,6 +232,14 @@ int main(int args, char* arg[]){
 #ifdef USEMSV_TRIELIST
 	#include "list/TrieList.h"
 #endif
+
+//#ifdef USEMSV_HASHLIST
+//	#include "list/HashList.h"
+//#endif
+
+//#ifdef USEMSV_HASHTREE
+//	#include "list/HashTree.h"
+//#endif
 
 #ifdef USEMSV_AMF
 	#include "proto/amf.cpp"
@@ -288,6 +311,10 @@ int main(int args, char* arg[]){
 	#include "server/light/light.h"
 #endif
 
+#ifdef USEMSV_TGBOTS
+	#include "proto/tgbots.cpp"
+#endif
+
 #ifdef USEMSV_ANDROID
 	#include "android/device.cpp"
 #endif
@@ -306,6 +333,10 @@ int main(int args, char* arg[]){
 
 #ifdef USEMSV_TESTS
 	#include "special/tests.cpp"
+#endif
+
+#ifdef USEMSV_UNSTABEBIGINT
+	#include "special/unbint.h"
 #endif
 
 

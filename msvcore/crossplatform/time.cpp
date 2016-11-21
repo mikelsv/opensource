@@ -12,10 +12,10 @@
 */
 //int time(){ return time(0);}
 //int64 time64(){ __timeb64 tb; _ftime64(&tb); return tb.time; }
-unsigned int time(){ timeb tb; ftime(&tb); return tb.time; }
+unsigned int time(){ timeb tb; ftime(&tb); return (int)tb.time; }
 timeb alltime(){ timeb tb; ftime(&tb); return tb; }
-int timemi(timeb&o, timeb&t){ return (o.time-t.time)*1000+o.millitm-t.millitm; };
-int timemit(timeb&t){ timeb o; ftime(&o); return (o.time-t.time)*1000+o.millitm-t.millitm; };
+int timemi(timeb&o, timeb&t){ return (int)(o.time-t.time)*1000+o.millitm-t.millitm; };
+int timemit(timeb&t){ timeb o; ftime(&o); return (int)(o.time-t.time)*1000+o.millitm-t.millitm; };
 int64 sectime(){ timeb ft; ftime(&ft); return int64(ft.time)*1000+ft.millitm; }
 
 //*// > IString.h
@@ -72,11 +72,11 @@ unsigned int mktime(int y, int m=0, int d=0, int h=0, int mi=0, int s=0, bool gm
 
 MTime::MTime(){
 	memset(this, 0, sizeof(MTime)); timeb tb; ftime(&tb);
-	ttime=tb.time; millitm=tb.millitm; timezone=tb.timezone; dstflag=tb.dstflag;
+	ttime=(int)tb.time; millitm=tb.millitm; timezone=tb.timezone; dstflag=tb.dstflag;
 }
 
 int MTime::time(int cl){ timeb tb; ftime(&tb);
-	ttime=tb.time; millitm=tb.millitm; timezone=tb.timezone; dstflag=tb.dstflag;
+	ttime=(int)tb.time; millitm=tb.millitm; timezone=tb.timezone; dstflag=tb.dstflag;
 	return ttime;}
 
 //int MTime64::settime(){ timeb tb;
@@ -330,7 +330,7 @@ Z - смещение часового пояса, в секундах (т.е. от "-43200" до "43200"). Смещение 
 #ifdef WIN32
 		int64 li;
 		if(!QueryPerformanceCounter((LARGE_INTEGER*)&li)) return 0;
-		return (li * 1000.0) / freq;
+		return (int64)(li * 1000.0) / freq;
 #else
 		struct timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);	

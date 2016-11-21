@@ -269,3 +269,322 @@ public:
 		return VString(buff.endu(), abuff.sz-buff);
 	}
 };
+
+
+// SendDataGLock - send data [one global lock]. Rebuild SendDataL class.
+// Created 21.10.2016 16:55
+#ifndef MSVCORE_SENDDATA_BUFSZ
+	#define MSVCORE_SENDDATA_BUFSZ S8K
+#endif
+
+TLock SendDataGLockLock;
+
+struct SendDataGLockD{
+	SendDataGLockD *n;
+	unsigned int asz, usz, ssz; // all size, use size, send size;
+	unsigned char data[0];
+}; // 10, 12, 16. [align 1, 4, 8]
+
+//unsigned short sz[CNT_SDPSZ], asz[CNT_SDPSZ], ssz[CNT_SDPSZ]; // size, all size, send size
+//char*data[CNT_SDPSZ]; BYTE tpos, spos;
+
+class SendDataGLock{
+public:
+	SendDataGLockD *a, *e;
+	unsigned int asz, usz, dsz; // all size, use size, del size(sended)
+	
+	SendDataGLock(){
+		memset(this, 0, sizeof(SendDataGLockD));
+	}
+
+
+	void* Get(unsigned int &se){
+		UGLOCK(SendDataGLockLock);
+
+		if(!a || !dsz){
+			se = 0;
+			return 0;
+		}
+
+		se = a->usz - a->ssz;
+		
+		return a->data + a->ssz;
+	}
+
+	unsigned int Get(void *dt, unsigned int se){
+		if(!a || !dsz){
+			return 0;
+		}
+
+		UGLOCK(SendDataGLockLock);
+
+		SendDataGLockD *d = a;
+		unsigned int s = 0, t;
+
+		while(d && se){
+			t = d->usz - d->ssz > se ? se : d->usz - d->ssz;
+			memcpy(dt, d->data + d->ssz, t);
+			s += t;
+			dt = (char*)dt + t;
+			se -= t;
+			d = d->n;
+		}
+
+		return s;
+	}
+	
+protected:
+	SendDataGLockD* New(unsigned int ns){ // prev lock
+		if(ns % MSVCORE_SENDDATA_BUFSZ)
+			ns = ns + MSVCORE_SENDDATA_BUFSZ - ns % MSVCORE_SENDDATA_BUFSZ;
+			
+		SendDataGLockD *d = (SendDataGLockD*)malloc(ns); //mcnew(s);
+		d->asz = ns - sizeof(SendDataGLockD);
+		d->n = 0;
+		d->usz = 0;
+		d->ssz = 0;
+
+		if(e){
+			e->n = d;
+			e = d;
+		}
+		else {
+			a = d;
+			e = d; 
+		}		
+		
+		asz += d->asz;
+
+		return d;
+	}
+
+public:
+	unsigned int Set(const VString &line){
+		return Set(line, line);
+	}
+
+	unsigned int Set(const void*dta, unsigned int s){
+		if(!s || !dta)
+			return 1;
+
+		UGLOCK(SendDataGLockLock);
+		unsigned int ef, se = 0;
+
+		// Use last element
+		if(e){
+			if(e->ssz == e->usz){
+				usz -= e->usz;
+				e->usz = 0;
+				e->ssz = 0;
+			}
+			ef = e->asz - e->usz;
+		}else
+			ef = 0;
+
+		while(s){
+			if(ef){
+				if(ef > s)
+					ef = s;
+
+				memcpy(e->data + e->usz, dta, ef);
+				dta = (char*)dta + ef;
+				dsz += ef;
+				usz += ef;
+				e->usz += ef;				
+				s -= ef;
+				se += ef;
+			}
+			if(!s)
+				return se;
+
+			if(!New(s))
+				return se;
+
+			ef = e->asz;
+		}
+
+		return se;
+	}
+
+	void Del(unsigned int se){
+		if(!a || !dsz || !se){
+			se = 0;
+			return ;
+		}
+
+		UGLOCK(SendDataGLockLock);
+		unsigned int t;
+
+		if(se > usz || se > dsz){
+			while(a && se && se >= a->usz - a->ssz){
+				se -= a->usz - a->ssz;
+				dsz -= a->usz - a->ssz;
+				a->ssz = a->usz;
+				if(a->asz == a->usz)
+					DelA();
+			}
+		}
+
+		t= a ? (((se) < (a->usz - a->ssz)) ? (se) : (a->usz - a->ssz)) : 0;
+		if(a && se && t){
+			a->ssz += t;
+			dsz -= t;
+		}
+
+		return ;
+	}
+
+	void DelA(){ // prev lock
+		if(!a)			
+			return ;
+
+		SendDataGLockD *d = a;
+		if(!a)
+			return;
+
+		a = a->n;
+
+		if(!a)
+			e = 0;
+
+		asz -= d->asz;
+		usz -= d->usz;
+		dsz -= d->usz - d->ssz;
+		
+		free(d);
+
+		return ;
+	}
+
+	unsigned int Size(){
+		return dsz;
+	}
+
+	void Clean(){
+		SendDataGLockD *p, *d;
+
+		{
+			UGLOCK(SendDataGLockLock);
+
+			p = a;
+			d = p;
+
+			a = 0;
+			e = 0;
+			asz = 0;
+			usz = 0;
+			dsz = 0;
+		}
+
+		while(p){
+			d = p;
+			p = p->n;
+			free(d);
+		}
+
+		return ;
+	}
+
+};
+
+TLock SendDataRingLock;
+
+#define SENDDATALOCK_BUFSZ	S8K
+
+class SendDataRing{
+	MString buf;
+	int pread, pwrite;
+	
+public:
+	SendDataRing(){
+		pread = 0;
+		pwrite = 0;
+	}
+
+	// Max Read
+	int IsRead(){
+		return pwrite >= pread ? pwrite - pread : buf.sz - pread + pwrite;
+		//return (buf.sz + pread - pread) % buf.sz;
+	}
+
+	int IsFree(){
+		return buf.sz ? buf.sz - IsRead() : SENDDATALOCK_BUFSZ;
+	}
+
+	int Read(VString b){
+		UGLOCK(SendDataRingLock);
+		if(!b.sz)
+			return 0;
+
+		int ms = pwrite >= pread ? pwrite - pread : buf.sz - pread;
+		int s = minel(ms, b.sz);
+		memcpy(b, buf.data + pread, s);
+
+		if(pwrite < pread && b.sz > ms){
+			int ns = minel(pwrite, b.sz - s);
+			memcpy(b.data + s, buf.data, ns);
+			s+= ns;
+		}
+
+		return s;
+	}
+	
+	VString ReadData(){
+		UGLOCK(SendDataRingLock);
+		if(pwrite >= pread)
+			return VString(buf.data + pread, pwrite - pread);
+		else
+			return VString(buf.data + pread, buf.sz - pread);
+	}
+
+	int Readed(int sz){
+		UGLOCK(SendDataRingLock);
+		if(sz > IsRead())
+			sz = IsRead();
+
+		if(sz && buf.sz)
+			pread = (pread + sz) % buf.sz;
+
+		return 1;
+	}
+
+	int Write(VString b){
+		UGLOCK(SendDataRingLock);
+		if(!buf)
+			Reserv();
+
+		int as = 0;
+
+		while(1){
+			int f = buf.sz - IsRead();
+			int s = minel(f, b.sz - as);
+			if(!s)
+				break;
+
+			memcpy(buf.data + pwrite, b.data + as, s);
+
+			pwrite = (pwrite + s) % buf.sz;
+			as += s;
+		}
+
+		return as;
+	}
+
+	int Reserv(int sz = SENDDATALOCK_BUFSZ){
+		UGLOCK(SendDataRingLock);
+		return buf.Reserv(sz);
+	}
+
+	void Clean(){
+		UGLOCK(SendDataRingLock);
+		pread = 0;
+		pwrite = 0;
+		buf.Clean();
+	}
+
+	~SendDataRing(){
+		UGLOCK(SendDataRingLock);
+		buf.Clean();
+	}
+
+};

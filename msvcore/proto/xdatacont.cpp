@@ -694,7 +694,7 @@ public:
 // eXtended Data Container
 class XDataCont{
 	//XDataLine data;
-	UList<XDataEl, 0, 1> data;
+	UList<XDataEl, 0, 1, S16K> data;
 
 	int sz;
 

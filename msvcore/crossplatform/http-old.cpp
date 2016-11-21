@@ -14,7 +14,7 @@ ret+=MString(char(ar[0]*16+ar[1]));i++;i++;
 }
 else { ret+=line[i];}
 }
-return ret;
+return MString(ret.oneline(), ret.size());
 }
 
 MString HTInp(const MString &line){
@@ -33,7 +33,7 @@ ret+=MString(char(ar[0]*16+ar[1]));i++;i++;
 }
 else { ret+=line[i];}
 }
-return ret;
+return MString(ret.oneline(), ret.size());
 }
 
 MString CleanVal(MString val){

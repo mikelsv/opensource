@@ -1,0 +1,10 @@
+#TCFILE UMatrix
+
+#TC UMatrixXData.h
+$class XDataLine
+$data XDataEl
+$func #EOF
+#EOF#
+$constr
+$destr
+#TC#

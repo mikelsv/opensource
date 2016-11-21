@@ -128,7 +128,7 @@ public:
 				opt = options;
 
 		for(opt; opt; opt = opt->next){
-			if(opt->key == name)
+			if(opt->key.compareu(name))
 				return opt;
 		}
 

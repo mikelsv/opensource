@@ -34,6 +34,8 @@ public:
 	//TString(const MString &line);
 	TString(const TString &line);
 
+	TString(TString &&line);
+
 	// --------------------------------------------------- Set	Установка
 
 	const TString& operator=(char string);

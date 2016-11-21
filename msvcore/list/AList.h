@@ -22,7 +22,7 @@ public:
 		return t;
 	}
 
-	void AllocDel(T *t){
+	void AllocFree(T *t){
 		if(OT & AListDes)
 			t->~T();
 		free(t);
@@ -43,10 +43,14 @@ public:
 
 	T* AllocNew(){
 		T *t = list.Add();
+		if(OT & AListCon)
+			new(t)T;
 		return t;
 	}
 
 	void AllocFree(T *t){
+		if(OT & AListDes)
+			t->~T();
 		//list.Del(t);
 		return ;
 	}
@@ -69,6 +73,8 @@ public:
 	}
 
 	void AllocFree(T *t){
+		if(OT & AListDes)
+			t->~T();
 		//list.Del(t);
 		return ;
 	}
@@ -88,10 +94,14 @@ public:
 
 	T* AllocNew(){
 		T *t = list.New();
+		if(OT & AListCon)
+			new(t)T;
 		return t;
 	}
 
 	void AllocFree(T *t){
+		if(OT & AListDes)
+			t->~T();
 		list.Del(t);
 		return ;
 	}

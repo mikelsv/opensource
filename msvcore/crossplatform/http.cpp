@@ -335,7 +335,7 @@ class GetHttp{
 	// ip
 	ConIp ip;
 	// page
-	MString r_method, r_agent, r_accept, r_post, r_boundary_id, r_boundary, r_cookies, page;
+	MString r_method, r_agent, r_accept, r_post, r_boundary_id, r_boundary, r_cookies, r_header, page;
 	// result: http data
 	MHttp http;
 	// return
@@ -347,13 +347,15 @@ class GetHttp{
 	int usessl;
 	int minimal;
 
+	int *r_progress, *r_progressa;
+
 #ifdef USEMSV_OPENSSL
 	MySSL ssl;
 #endif
 
 public:
-	GetHttp(){ timeout=30; repeat=1; usessl=0; minimal=0; arecv =0; asend = 0; }
-	void Clean(){ r_method.Clean(); r_agent.Clean(); r_post.Clean(); r_boundary_id.Clean(); r_boundary.Clean(); r_cookies.Clean(); http.Clean(); }
+	GetHttp(){ timeout = 30; repeat = 1; usessl = 0; minimal = 0; arecv = 0; asend = 0; r_progress = 0; r_progressa = 0; }
+	void Clean(){ r_method.Clean(); r_agent.Clean(); r_post.Clean(); r_boundary_id.Clean(); r_boundary.Clean(); r_cookies.Clean(); r_header.Clean(); http.Clean(); }
 
 	void SetMethod(VString v){ r_method=v; }
 	VString GetMethod(){ return r_method; }
@@ -369,7 +371,21 @@ public:
 	void SetBoundary(VString id, VString v){ r_boundary_id = id; r_boundary = v; }
 	//VString GetPost(){ return r_post; }
 
+	void SetHeader(VString v){
+		r_header = v;
+	}
+
 	void SetMinimal(){ minimal=1; }
+
+	void SetProgress(int &p, int &pa){
+		r_progress = &p;
+		r_progressa = &pa;
+	}
+
+	void ClearProgress(int &p, int &pa){
+		r_progress = 0;
+		r_progressa = 0;
+	}
 
 	MHttp& GetHead(){ return http; }
 	VString GetHead(VString name){ return http.GetHead(name); }
@@ -377,6 +393,55 @@ public:
 
 	void SetCookies(VString v){ r_cookies=v; }
 	VString GetCookies(){ return r_cookies; }
+
+	/*TString GetResultCookies(){
+		//TString cooks = GetHead().GetCookies();
+		HLString ls;
+		VString line = r_cookies;
+		
+		while(line){
+			VString o = PartLine(line, line, ";"), t;
+			o = PartLine(o, t, "=");
+			if(o[0] == ' '){
+				o.data ++;
+				o.sz --;
+			}
+
+			httpval *c = http.cookies;
+			while(c){
+				if(o == c->k)
+					break;
+				c = c->n;
+			}
+
+			if(ls)
+				ls + "; ";
+
+			ls + o + "=";
+			if(!c)
+				ls + t;
+			else
+				ls + c->val();	
+		}
+
+		httpval *c = http.cookies;
+		while(c){
+			VString o, t;
+			SString k;
+
+			o = PartLine(r_cookies, t, k.Add(PartLinec->key(), "="));
+
+			if(!t){
+				if(ls)
+					ls + "; ";
+				ls + c->kkey();
+			}
+			
+			c = c->n;
+		}
+
+		return ls;
+	}*/
 
 	void SetUseSSL(int v){ usessl=v; }
 	int SetUseSSL(){ return usessl; }
@@ -403,6 +468,10 @@ public:
 			"+", "%2B"),
 			"#", "%23")
 			;		
+	}
+
+	static TString DecodePostValue(VString val){
+		return HttpToVal(val);
 	}
 
 	void AddBoundary(HLString &ls, VString bnid, VString key, VString val){
@@ -438,6 +507,11 @@ protected:
 	int DoRequest(VString url){
 		HLString ls; ILink il; int snd;
 		arecv = 0; asend = 0;
+
+		if(r_progress && r_progressa){
+			*r_progress = 0;
+			*r_progressa = 100;
+		}
 
 		il.Link(url);
 #ifdef USEMSV_OPENSSL
@@ -503,6 +577,9 @@ protected:
 			ls + "Content-Type: multipart/form-data; boundary=" + r_boundary_id + "\r\n";
 		}
 
+		if(r_header){
+			ls + r_header;
+		}
 
 		ls+"\r\n";
 
@@ -539,7 +616,7 @@ protected:
 		if(!snd)
 			return 0;
 
-		int ret=Recv(sock);
+		int ret = Recv(sock);
 
 #ifdef USEMSV_OPENSSL
 			ssl.Close();
@@ -551,9 +628,10 @@ protected:
 
 protected:
 	int Recv(SOCKET sock){
-		unsigned char buf[S8K]; int bufs=0, bufms=sizeof(buf);
-		HLString ls; int rdata=0, cl=0;
-		int tm=time(), ltm=tm;
+		unsigned char buf[S8K]; int bufs = 0, bufms = sizeof(buf);
+		HLString ls;
+		int rdata = 0, cl=0;
+		int tm = time(), ltm = tm;
 
 		while(1){
 			if(bufs==bufms){
@@ -562,20 +640,23 @@ protected:
 			}
 
 			// timeout
-			ltm=time();
-			if(ltm-tm>timeout) return 0;
+			ltm = time();
+			if(ltm - tm > timeout) return 0;
 
 			// recv
-			if(!ifrecv(sock, 300)) continue;
-			int rcv=recv(sock, (char*)buf+bufs, bufms-bufs);
+			if(!ifrecv(sock, 300))
+				continue;
+
+			int rcv = recv(sock, (char*)buf + bufs, bufms - bufs);
+
 			if(rcv<0)
 				return 0;
 
 			arecv += rcv;
-			tm=ltm;
+			tm = ltm;
 
-			if(rcv==0){
-				if(rdata && (!cl || ls.size()>=cl)){
+			if(rcv == 0){
+				if(rdata && (!cl || ls.size() >= cl)){
 					http.Set(VString(buf, bufs));
 					ls.String(this->data);
 //					print("\r\n\r\n", this->data);
@@ -585,10 +666,20 @@ protected:
 			}
 			
 			if(!rdata)
-				bufs+=rcv;
+				bufs += rcv;
 			else{
-				ls+VString((char*)buf+bufs, rcv);
-				if(cl && ls.size()>=cl){
+				ls + VString((char*)buf + bufs, rcv);
+
+				if(r_progress && r_progressa){
+					*r_progress = ls.size();
+
+					if(cl)
+						*r_progressa = cl;
+					else
+						*r_progressa = ls.size();					
+				}
+
+				if(cl && ls.size() >= cl){
 					http.Set(VString(buf, bufs));
 					ls.String(this->data);
 //					print("\r\n\r\n", this->data);
@@ -601,12 +692,21 @@ protected:
 			if(!PartLineOT(data, "\r\n\r\n").data) continue;
 
 			// Cl
-			cl=PartLineDouble(data, "Content-Length: ", "\r\n").toi();
-			VString d=PartLineOT(data, "\r\n\r\n");
-			if(d.sz<=cl || !cl){
-				ls+d; bufs-=d.sz; rdata=1;				
+			cl = PartLineDouble(data, "Content-Length: ", "\r\n").toi();
+			VString d = PartLineOT(data, "\r\n\r\n");
+			if(d.sz <= cl || !cl){
+				ls + d; bufs -= d.sz; rdata = 1;	
+
+				if(r_progress && r_progressa){
+					*r_progress = ls.size();
+
+					if(cl)
+						*r_progressa = cl;
+					else
+						*r_progressa = ls.size();					
+				}
 				
-				if(cl && ls.size()>=cl){
+				if(cl && ls.size() >= cl){
 					http.Set(VString(buf, bufs));
 					ls.String(this->data);
 					return 1;
@@ -640,12 +740,11 @@ protected:
 };
 
 
-
 class GetHttp2{
 	// ip
 	ConIp ip;
 	// page
-	MString r_method, r_agent, r_accept, r_post, r_cookies, r_referrer, page;
+	MString r_method, r_agent, r_accept, r_post, r_cookies, r_referrer, r_header, page;
 	// result: http data
 	MHttp http;
 	MCookie cookie;
@@ -675,6 +774,10 @@ public:
 
 	void SetPost(VString v){ r_post=v; }
 	VString GetPost(){ return r_post; }
+
+	void SetHeader(VString v){
+		r_header = v;
+	}
 
 	MHttp& GetHead(){ return http; }
 	VString GetData(){ return data; }
@@ -781,6 +884,9 @@ protected:
 			ls+"Content-Length: " + r_post.size() + "\r\n";
 			ls+"Content-Type: application/x-www-form-urlencoded\r\n";
 		}
+
+		if(r_header)
+			ls + r_header;
 
 		ls+"\r\n";
 

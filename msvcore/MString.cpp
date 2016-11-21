@@ -72,6 +72,8 @@ MString::MString(const unsigned int code, const unsigned int size){ sz=size; MSt
 MString::MString(const VString &line){ sz=line.sz; MStringNew(line); }
 MString::MString(const MString &line){ sz=line.sz; MStringNew(line); }
 
+MString::MString(MString &&line){ data = line.data; sz = line.sz; line.data = 0; line.sz = 0; }
+
 // --------------------------------------------------- Set	Установка
 
 const MString& MString::operator=(const char string){ unsigned char* odata=data; sz=1; MStringNew(&string); _del(odata); return *this; }

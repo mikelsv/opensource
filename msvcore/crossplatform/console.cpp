@@ -594,6 +594,8 @@ class PipeLine{
 	VString env, inp;
 	HLString *tml;
 
+	VString opt_dir;
+
 	// For OutBuffer
 	int isoutbuffer, isprocess;
 
@@ -688,6 +690,10 @@ public:
 	void SetInput(VString line){ inp=line; }
 	void SetTimeLine(HLString &tm){ tml=&tm; }
 	void SetTimeLine(){ tml=0; }
+
+	void SetDir(VString v){
+		opt_dir = v;
+	}
 
 #ifndef WIN32
 
@@ -906,7 +912,7 @@ int EndProcess(int &rc, HLString &hls, HLString &ehls, int tocon=1){
 //#ifdef WIN32_NOUSEIT_456
 
 int Run(MString cmd, int &rc, HLString &hls, HLString &ehls, int tocon=1){
-	cputime=0; kerneltime=0; usertime=0;
+	cputime=0; kerneltime=0; usertime=0; rc = -1;
 
 	if(isprocess)
 		EndProcess();
@@ -954,7 +960,7 @@ int Run(MString cmd, int &rc, HLString &hls, HLString &ehls, int tocon=1){
 	//создаем дочерний процесс
 	// ILink il; il.Ilink(cmd);
 
-	if(!CreateProcess(NULL, MODUNICODE(cmd), NULL, NULL, TRUE, CREATE_NEW_CONSOLE, env, NULL, &si, &pi)){
+	if(!CreateProcess(NULL, MODUNICODE(cmd), NULL, NULL, TRUE, CREATE_NEW_CONSOLE, env, MODUNICODE(opt_dir), &si, &pi)){
 		//il.GetPath()+il.file, il.iquest
 		ErrorMessage("CreateProcess");
 		//getch();
@@ -1027,6 +1033,8 @@ int Run(MString cmd, int &rc, HLString &hls, HLString &ehls, int tocon=1){
 
 	if(tml){ tml->oneline(); tml=0; }
 	EndProcess();
+
+	rc = exitcode;
 
 	return 0;
 	}
@@ -1207,6 +1215,559 @@ MString buf; buf.Reserv(S1K);
 #endif
 
 };
+
+#define PIPELINE_STATE_NONE	0
+#define PIPELINE_STATE_RDWR 1
+#define PIPELINE_STATE_READ 2
+
+
+class PipeLine2{
+	// State
+	int state;
+
+	// Options
+	int iscont; // Continue
+	int isinput; // Input
+
+	// Result
+	SendDataRing input, output, errput;
+	int64 usertime, kerneltime, cputime;
+	int exitcode;
+
+	// OS 
+#ifdef WIN32
+	STARTUPINFO			si;
+	SECURITY_ATTRIBUTES sa;
+	SECURITY_DESCRIPTOR sd;        //структура security для пайпов
+	PROCESS_INFORMATION pi;
+
+	HANDLE newstdin, newstdout, newstderr, write_stdin, read_stdout, read_stderr;  //дескрипторы пайпов
+
+//	unsigned long exitcode;  //код завершения процесса
+//	unsigned long bread;   //кол-во прочитанных байт
+//	unsigned long avail;   //кол-во доступных байт
+#else
+	int p_stdin[2], p_stdout[2], p_stderr[2], p_stdret[2], pid;// int *prc=&rc; int *rrc=new int;
+#endif
+
+public:
+
+	PipeLine2(){
+		state = PIPELINE_STATE_NONE;
+		iscont = 1;
+		isinput = 1;
+
+#ifdef WIN32
+		newstdin = 0; newstdout = 0; newstderr = 0; write_stdin = 0; read_stdout = 0; read_stderr = 0;
+#endif
+	}
+
+	SendDataRing& StdIn(){
+		return input;
+	}
+
+	SendDataRing& StdOut(){
+		return output;
+	}
+
+	SendDataRing& StdErr(){
+		return errput;
+	}
+
+	void StdInClose(){
+		isinput = 0;
+	}
+
+#ifdef WIN32
+
+	int Run(VString cmd, VString dir = VString(), VString env = VString(), int isinput = 0){
+		cputime = 0;
+		kerneltime = 0;
+		usertime = 0;
+		exitcode = 0;
+
+		if(state == PIPELINE_STATE_RDWR || state == PIPELINE_STATE_READ)
+			EndProcess();
+
+		if(IsWinNT()){
+			//инициализация security для Windows NT
+			InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
+			SetSecurityDescriptorDacl(&sd, true, NULL, false);
+			sa.lpSecurityDescriptor = &sd;
+		}
+		else
+			sa.lpSecurityDescriptor = NULL;
+
+		sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+		sa.bInheritHandle = true;	//разрешаем наследование дескрипторов
+
+		if(!CreatePipe(&newstdin, &write_stdin, &sa, 0)){	//создаем пайп для stdin
+			ErrorMessage("CreatePipe");
+			return 0;
+		}
+
+		if(!CreatePipe(&read_stdout, &newstdout, &sa, 0)){ //создаем пайп для stdout
+			ErrorMessage("CreatePipe");
+			CloseHandle(newstdin);
+			CloseHandle(write_stdin);
+
+			newstdin = 0;
+			write_stdin = 0;
+			return 0;
+		}
+
+		if(!CreatePipe(&read_stderr, &newstderr, &sa, 0)){ //создаем пайп для stdout
+			ErrorMessage("CreatePipe");
+			CloseHandle(newstdin);
+			CloseHandle(write_stdin);
+			CloseHandle(read_stdout);
+			CloseHandle(newstdout);
+
+			newstdin = 0;
+			write_stdin = 0;
+			read_stdout = 0;
+			newstdout = 0;
+			return 0;
+		}
+
+		//создаем startupinfo для дочернего процесса
+		GetStartupInfo(&si);
+
+		// Параметр dwFlags сообщает функции CreateProcess как именно надо создать процесс.
+		// STARTF_USESTDHANDLES управляет полями hStd*.
+		// STARTF_USESHOWWINDOW управляет полем wShowWindow.
+
+		si.dwFlags = STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
+		si.wShowWindow = SW_HIDE;
+		si.hStdInput = newstdin;	 //подменяем дескрипторы для
+		si.hStdOutput = newstdout;	 // дочернего процесса
+		si.hStdError = newstderr;
+
+		SString scmd(cmd), sdir(dir);
+
+		if(!CreateProcess(NULL, MODUNICODE(scmd), NULL, NULL, TRUE, CREATE_NEW_CONSOLE, env, MODUNICODE(sdir), &si, &pi)){
+			//il.GetPath()+il.file, il.iquest
+			ErrorMessage("CreateProcess");
+			//getch();
+			EndProcess();
+			return 0;
+		}
+
+		if(isinput)
+			state = PIPELINE_STATE_RDWR;
+		else
+			state = PIPELINE_STATE_READ;
+
+		if(iscont)
+			Process();
+
+		return 1;
+	}
+
+	int Process(){
+		if(!state)
+			return 0;
+
+		unsigned char buf[S8K];
+		DWORD bread, avail, rd;
+		DWORD ec;
+
+		//основной цикл программы
+		while(1){
+			// пока дочерний процесс не закрыт
+			GetExitCodeProcess(pi.hProcess, &ec);
+
+			rd = 0;
+
+			if(IsHandle(write_stdin)){
+				if(input.IsRead()){
+					bread = input.Read(VString(buf, sizeof(buf)));
+					WriteFile(write_stdin, buf, bread, &bread, NULL);
+					input.Readed(bread);
+				}
+				else if(!isinput){
+					CloseHandle(write_stdin);
+					CloseHandle(newstdin);
+					write_stdin = 0;
+					newstdin = 0;
+
+					//signal(SIGINT, pi.dwProcessId);
+				}
+			}
+
+			//Проверяем, есть ли данные для чтения в stdout
+			PeekNamedPipe(read_stdout, buf, sizeof(buf) - 1, &bread, &avail, NULL);
+			
+			if(bread || avail){
+				rd = 1;
+				if(output.IsFree()){
+					int s = minel(output.IsFree(), sizeof(buf) - 1);
+					ReadFile(read_stdout, buf, s, &bread, NULL);
+					output.Write(VString(buf, bread));
+				}
+			}
+
+			//Проверяем, есть ли данные для чтения в stderr
+			PeekNamedPipe(read_stderr, buf, sizeof(buf) - 1, &bread, &avail, NULL);
+			
+			if(bread || avail){
+				rd = 1;
+				if(errput.IsFree()){
+					int s = minel(errput.IsFree(), sizeof(buf) - 1);
+					ReadFile(read_stderr, buf, s, &bread, NULL);
+					errput.Write(VString(buf, bread));
+				}
+			}
+
+			if(!rd && ec != STILL_ACTIVE)
+				break;
+
+			if(!iscont)
+				return 1;
+
+			if(!rd)
+				Sleep(1);
+		}
+
+		EndProcess();
+		exitcode = ec;
+
+		return 0;
+	}
+
+	int EndProcess(){
+		if(state == PIPELINE_STATE_NONE)
+			return 0;
+
+		FILETIME StartTime, EndTime;
+		FILETIME KernelTime, UserTime;
+		
+		state = PIPELINE_STATE_NONE;
+
+		GetProcessTimes(pi.hProcess, &StartTime, &EndTime, &KernelTime, &UserTime);
+		kerneltime = *(int64*)&KernelTime / 10;
+		usertime = *(int64*)&UserTime / 10;
+		cputime = kerneltime + usertime;
+
+		CloseHandle(pi.hThread);
+		CloseHandle(pi.hProcess);
+		CloseHandle(newstdin);            //небольшая уборка за собой
+		CloseHandle(newstdout);
+		CloseHandle(newstderr);
+		CloseHandle(write_stdin);
+		CloseHandle(read_stdout);
+		CloseHandle(read_stderr);		
+
+		pi.hThread = 0;
+		pi.hProcess = 0;
+		newstdin = 0;
+		newstdout = 0;
+		newstderr = 0;
+		write_stdin = 0;
+		read_stdout = 0;
+		read_stderr = 0;
+
+		return 1;
+	}
+
+#else
+
+	int RunNewPipe(int *apipe){
+		if(pipe(apipe) < 0){
+			Sleep(100);
+			pid = 0;
+		
+			while(pipe(apipe) < 0 && pid ++ < 5)
+				Sleep(100);
+		
+			if(pid >= 5)
+				return 0;			
+		}
+
+		return 1;
+	}
+
+	int Run(VString cmd, VString dir = VString(), VString env = VString(), int isinput = 0){
+		cputime = 0;
+		kerneltime = 0;
+		usertime = 0;
+		exitcode = 0;
+
+		if(state == PIPELINE_STATE_RDWR || state == PIPELINE_STATE_READ)
+			EndProcess();
+
+		pipelock.Lock();
+
+		if(!RunNewPipe(p_stdin)){
+			print("Died on pipe(p_stdin, ", itos(errno), ")!\n");
+			pipelock.UnLock();
+			return 0;
+		}
+
+		if(!RunNewPipe(p_stdout)){
+			close(p_stdin[0]);
+			close(p_stdin[1]);
+			print("Died on pipe(p_stdout, ", itos(errno), ")!\n");
+			pipelock.UnLock();
+			return 0;
+		}
+
+		if(!RunNewPipe(p_stderr)){
+			close(p_stdin[0]);
+			close(p_stdin[1]);
+			close(p_stdout[0]);
+			close(p_stdout[1]);
+			print("Died on pipe(p_stderr, ", itos(errno), ")!\n");
+			pipelock.UnLock();
+			return 0;
+		}
+
+		if(!RunNewPipe(p_stdret)){
+			close(p_stdin[0]);
+			close(p_stdin[1]);
+			close(p_stdout[0]);
+			close(p_stdout[1]);
+			close(p_stderr[0]);
+			close(p_stderr[1]);
+			print("Died on pipe(p_stdret, ", itos(errno), ")!\n");
+			pipelock.UnLock();
+			return 0;
+		}
+
+		pipelock.UnLock();
+
+		if((pid = fork()) < 0){
+			close(p_stdin[0]);
+			close(p_stdin[1]);
+			close(p_stdout[0]);
+			close(p_stdout[1]);
+			close(p_stderr[0]);
+			close(p_stderr[1]);
+			close(p_stdret[0]);
+			close(p_stdret[1]);
+			printf("Died on fork()!\n");
+			return 0;
+		}
+
+		if(pid == 0){
+			// Child
+			close(p_stdin[1]);
+			close(p_stdout[0]);
+			close(p_stderr[0]);
+			close(p_stdret[0]);
+
+			dup2(p_stdin[0], fileno(stdin));
+			dup2(p_stdout[1], fileno(stdout));
+			dup2(p_stderr[1], fileno(stderr));
+
+			// Set env
+			char *ln = env, *to = ln + env.size();
+			int rc = -1;
+	
+			while(ln < to){
+				if(*ln)
+					putenv(ln);
+				
+				while(ln < to && *ln != 0)
+						ln++;
+				while(ln < to && *ln == 0)
+					ln++;	
+			}
+
+			rc = system(TString(cmd));
+
+			write(p_stdret[1], &rc, 4);
+
+			struct rusage ru;
+			rc = getrusage(RUSAGE_SELF, &ru);
+			if(rc){
+				memset(&ru.ru_utime, 0, sizeof(struct timeval) * 2);
+			}
+
+			write(p_stdret[1], &ru.ru_utime, sizeof(struct timeval) * 2);
+
+			close(p_stdin[0]);
+			close(p_stdout[1]);
+			close(p_stderr[1]);
+			close(p_stdret[1]);
+
+			quick_exit(0); //exit(0);
+			return 0;
+		}
+		
+		// Parent
+		close(p_stdin[0]);
+		close(p_stdout[1]);
+		close(p_stderr[1]);
+		close(p_stdret[1]);
+
+		if(isinput)
+			state = PIPELINE_STATE_RDWR;
+		else
+			state = PIPELINE_STATE_READ;
+
+		if(iscont)
+			Process();
+
+		return 1;
+	}
+
+	int Process(){
+		if(!state)
+			return 0;
+
+		unsigned char buf[S8K];
+		fd_set wfds, rfds, efds;
+		int aread, bwrite, bread = 1, eread = 1, maxs;
+		timeval tm;
+		
+
+		while(1){
+			FD_ZERO(&wfds);
+			FD_ZERO(&rfds);
+			FD_ZERO(&efds);			
+			FD_SET(p_stdin[1], &wfds);
+			FD_SET(p_stdout[0], &rfds);
+			FD_SET(p_stderr[0], &rfds);
+			FD_SET(p_stdout[0], &efds);
+			FD_SET(p_stderr[0], &efds);
+
+			maxs = maxel(p_stdin[1], p_stdout[0]);
+			maxs = maxel(maxs, p_stderr[0]);
+			maxs ++;
+
+			tm.tv_sec = 0;
+			tm.tv_usec = 0;
+			aread = 0;
+
+			int sel = select(maxs, &rfds, &wfds, &efds, &tm);
+
+			// Write
+			if(IsHandle(p_stdin[1]) && FD_ISSET(p_stdin[1], &wfds)){
+				if(input.IsRead()){
+					bwrite = input.Read(VString(buf, sizeof(buf)));
+					//WriteFile(write_stdin, buf, bread, &bread, NULL);
+					write(p_stdin[1], buf, bwrite);
+					input.Readed(bwrite);
+				}
+				else if(!isinput){
+					close(p_stdin[1]);
+					p_stdin[1] = 0;
+				}
+			}
+
+			if(FD_ISSET(p_stdout[0], &rfds)){
+				aread = 1;
+				if(output.IsFree()){
+					int s = minel(output.IsFree(), sizeof(buf) - 1);
+					//ReadFile(read_stdout, buf, s, &bread, NULL);
+					bread = read(p_stdout[0], buf, s);
+					if(bread > 0)
+						output.Write(VString(buf, bread));
+				}
+			}
+
+			if(FD_ISSET(p_stderr[0], &rfds)){
+				aread = 1;
+				if(errput.IsFree()){
+					int s = minel(errput.IsFree(), sizeof(buf) - 1);
+					//ReadFile(read_stdout, buf, s, &bread, NULL);
+					eread = read(p_stderr[0], buf, s);
+					if(eread > 0)
+						errput.Write(VString(buf, eread));
+				}
+			}
+
+		if(FD_ISSET(p_stdout[0], &efds) || FD_ISSET(p_stderr[0], &efds) || ( bread <= 0 && eread <= 0))
+			break;
+
+		if(sel < 0)
+			break;
+
+		if(!iscont)
+			return 1;
+
+		if(!aread)
+			Sleep(1);
+		}
+
+		EndProcess();
+		return 0;
+	}
+
+	int EndProcess(){
+		if(state == PIPELINE_STATE_NONE)
+			return 0;
+
+		state = PIPELINE_STATE_NONE;
+
+		struct timeval ctm[2];
+
+		int r = read(p_stdret[0], &exitcode, 4);
+		r = read(p_stdret[0], &ctm, sizeof(struct timeval) * 2);
+
+		//if(r == sizeof(struct timeval) * 2){  }
+		usertime = int64(ctm[0].tv_sec) * 1000000 + ctm[0].tv_usec * 1000;
+		kerneltime = int64(ctm[1].tv_sec) * 1000000 + ctm[1].tv_usec * 1000;
+		cputime = kerneltime + usertime;
+
+		r = waitpid(pid, 0, 0);
+		
+		if(p_stdin[1])
+			close(p_stdin[1]);
+		close(p_stdout[0]);
+		close(p_stderr[0]);
+		close(p_stdret[0]);
+
+		return 1;
+	}
+
+#endif
+
+
+#ifdef WIN32
+	bool IsWinNT(){  //проверка запуска под NT
+		OSVERSIONINFO osv;
+		osv.dwOSVersionInfoSize = sizeof(osv);
+		GetVersionEx(&osv);
+		return (osv.dwPlatformId == VER_PLATFORM_WIN32_NT);
+	}
+
+	void ErrorMessage(char *str){  //вывод подробной информации об ошибке
+		LPVOID msg;
+
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+			NULL,
+			GetLastError(),
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // язык по умолчанию
+			(LPTSTR) &msg,
+			0,
+			NULL
+		);
+
+		printf("%s: %s\n", str, msg);
+		LocalFree(msg);
+	}
+
+#else
+
+
+#endif
+
+	void Clean(){
+		EndProcess();
+	}
+
+	~PipeLine2(){
+		EndProcess();
+	}
+
+
+
+};
+
+
 
 class GlobalConsole;
 

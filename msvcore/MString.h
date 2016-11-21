@@ -59,6 +59,8 @@ public:
 	
 	MString(const VString &line);
 	MString(const MString &line);
+
+	MString(MString &&line);
 	
 	// --------------------------------------------------- Set	Установка
 

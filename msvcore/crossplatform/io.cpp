@@ -171,11 +171,11 @@ public:
 TString LoadFile(VString file){ if(!file) return TString();
 	TString ret; // *file.end()==0 ? file : MString(file)
 	HFILE fl; fl=CreateFile(file, O_RDONLY, S_IREAD| S_IWRITE);
-	if(fl==-1) return MString();
+	if(fl==-1) return TString();
 	ret.Reserv(GetFileSize(fl));
 	unsigned int rd=ReadFile(fl, ret, ret);
 	CloseHandle(fl);
-	if(rd!=ret.size()) return ret.str(0, rd);
+	if(rd!=ret.size()) return TString(); //ret.str(0, rd);
 	else return ret;
 }
 
