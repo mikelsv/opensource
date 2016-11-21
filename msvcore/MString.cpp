@@ -72,7 +72,9 @@ MString::MString(const unsigned int code, const unsigned int size){ sz=size; MSt
 MString::MString(const VString &line){ sz=line.sz; MStringNew(line); }
 MString::MString(const MString &line){ sz=line.sz; MStringNew(line); }
 
+#ifdef WIN32
 MString::MString(MString &&line){ data = line.data; sz = line.sz; line.data = 0; line.sz = 0; }
+#endif
 
 // --------------------------------------------------- Set	Установка
 

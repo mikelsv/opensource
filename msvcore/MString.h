@@ -60,7 +60,9 @@ public:
 	MString(const VString &line);
 	MString(const MString &line);
 
+#ifdef WIN32
 	MString(MString &&line);
+#endif
 	
 	// --------------------------------------------------- Set	Установка
 

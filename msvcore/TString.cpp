@@ -277,7 +277,10 @@ TString::TString(const short *string, int size){
 // string
 TString::TString(const VString &line){ THREADSTRINGINIT; sz = line.sz; StringNew(line); }
 TString::TString(const TString &line){ THREADSTRINGINIT; sz = line.sz; StringNew(line); }
+
+#ifdef WIN32
 TString::TString(TString &&line){ THREADSTRINGINIT; data = line.data; sz = line.sz; line.data = 0; line.sz = 0; }
+#endif
 //TString::TString(const MString &line){ sz = line.sz; StringNew(line); }
 
 	// --------------------------------------------------- Set	Установка

@@ -34,7 +34,9 @@ public:
 	//TString(const MString &line);
 	TString(const TString &line);
 
+#ifdef WIN32
 	TString(TString &&line);
+#endif
 
 	// --------------------------------------------------- Set	Установка
 
