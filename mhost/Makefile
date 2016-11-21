@@ -1,5 +1,5 @@
 PROJECTNAME=mhost
-ADDLIB=
+ADDLIB= -lpthread
 ADDFLAGS=
 
 ifndef _

@@ -1,5 +1,5 @@
 PROJECTNAME=http_load
-ADDLIB=
+ADDLIB=  -lpthread
 ADDFLAGS=
 
 include ../msvcore/make/msvmake-2c
