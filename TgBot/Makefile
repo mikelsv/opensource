@@ -1,5 +1,5 @@
 PROJECTNAME=TgBot
-ADDLIB=  -lssl -lcrypto
+ADDLIB=  -lssl -lcrypto -lpthread
 ADDFLAGS=
 
 include ../msvcore/make/msvmake-2c
